@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Projektant klocków 6×6×12 cm</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <aside class="ui-panel">
+      <h1>Projektant klocków 6×6×12 cm</h1>
+      <p>
+        Lewy przycisk myszy – dodawanie klocka w podświetlonym miejscu.<br />
+        <kbd>Shift</kbd> + lewy przycisk – usuwanie wskazanego klocka.<br />
+        Rolka myszy/gesty – przybliżenie, obrót widoku wykonujemy przeciągając myszą.
+      </p>
+      <div class="controls">
+        <button id="reset">Wyczyść scenę</button>
+        <button id="export">Eksportuj układ</button>
+      </div>
+      <details>
+        <summary>Jak to działa?</summary>
+        <p>
+          Każdy klocek ma wymiary 6&nbsp;×&nbsp;6&nbsp;×&nbsp;12&nbsp;cm i musi stykać się z innym klockiem lub podstawą.
+          Podgląd koloru zielonego oznacza, że klocek można ustawić, czerwony – pozycja jest niedostępna.
+          Eksport generuje listę współrzędnych, które można zapisać w notatniku.
+        </p>
+      </details>
+      <textarea id="export-output" readonly placeholder="Tutaj pojawi się eksport projektu"></textarea>
+    </aside>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
