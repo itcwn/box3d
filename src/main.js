@@ -1,5 +1,5 @@
-import * as THREE from 'https://unpkg.com/three@0.156.1/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.156.1/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const BLOCK_SIZE = { x: 6, y: 12, z: 6 }; // cm units
 const GRID_LIMIT = 10; // how many blocks allowed from center on X/Z
@@ -301,6 +301,8 @@ window.addEventListener('resize', () => {
 
 const resetButton = document.querySelector('#reset');
 const exportButton = document.querySelector('#export');
+
+addBlock({ x: 0, y: 0, z: 0 });
 
 resetButton.addEventListener('click', clearScene);
 exportButton.addEventListener('click', exportLayout);
