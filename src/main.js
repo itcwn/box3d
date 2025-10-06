@@ -8,7 +8,7 @@ const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
 const container = document.querySelector('#app');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#0a0f17');
+scene.background = new THREE.Color('#f3f5fa');
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(90, 110, 120);
@@ -41,17 +41,17 @@ dirLight.shadow.camera.bottom = -160;
 scene.add(dirLight);
 
 const gridSize = GRID_LIMIT * 2 + 1;
-const gridHelper = new THREE.GridHelper(gridSize * BLOCK_SIZE.x, gridSize, '#1b3a52', '#0f2535');
+const gridHelper = new THREE.GridHelper(gridSize * BLOCK_SIZE.x, gridSize, '#8cc63f', '#8cc63f');
 scene.add(gridHelper);
 
 const groundGeometry = new THREE.PlaneGeometry(gridSize * BLOCK_SIZE.x, gridSize * BLOCK_SIZE.z);
 const groundMaterial = new THREE.MeshStandardMaterial({
-  color: '#11202f',
-  metalness: 0.1,
-  roughness: 0.8,
+  color: '#e5f3d8',
+  metalness: 0,
+  roughness: 1,
   side: THREE.DoubleSide,
   transparent: true,
-  opacity: 0.35,
+  opacity: 0.4,
 });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.rotateX(-Math.PI / 2);
@@ -61,6 +61,20 @@ scene.add(ground);
 
 const blockGeometry = new THREE.BoxGeometry(BLOCK_SIZE.x, BLOCK_SIZE.y, BLOCK_SIZE.z);
 
+function applyTextureSettings(texture, { repeat = false } = {}) {
+  if (repeat) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+  }
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function createCanvasTexture(drawFn) {
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -69,14 +83,10 @@ function createCanvasTexture(drawFn) {
   const ctx = canvas.getContext('2d');
   drawFn(ctx, size);
   const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  return texture;
+  return applyTextureSettings(texture, { repeat: true });
 }
 
-const topBottomTexture = createCanvasTexture((ctx, size) => {
+const defaultTopBottomTexture = createCanvasTexture((ctx, size) => {
   ctx.fillStyle = '#d7b58a';
   ctx.fillRect(0, 0, size, size);
 
@@ -94,7 +104,7 @@ const topBottomTexture = createCanvasTexture((ctx, size) => {
   ctx.stroke();
 });
 
-const sidesTexture = createCanvasTexture((ctx, size) => {
+const defaultSidesTexture = createCanvasTexture((ctx, size) => {
   ctx.fillStyle = '#b98a5a';
   ctx.fillRect(0, 0, size, size);
 
@@ -128,14 +138,79 @@ const sidesTexture = createCanvasTexture((ctx, size) => {
   }
 });
 
+const materials = {
+  right: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
+  left: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
+  top: new THREE.MeshStandardMaterial({ map: defaultTopBottomTexture, metalness: 0.1, roughness: 0.4 }),
+  bottom: new THREE.MeshStandardMaterial({ map: defaultTopBottomTexture, metalness: 0.1, roughness: 0.4 }),
+  front: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
+  back: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
+};
+
 const blockMaterials = [
-  new THREE.MeshStandardMaterial({ map: sidesTexture, metalness: 0.2, roughness: 0.55 }), // right
-  new THREE.MeshStandardMaterial({ map: sidesTexture, metalness: 0.2, roughness: 0.55 }), // left
-  new THREE.MeshStandardMaterial({ map: topBottomTexture, metalness: 0.1, roughness: 0.4 }), // top
-  new THREE.MeshStandardMaterial({ map: topBottomTexture, metalness: 0.1, roughness: 0.4 }), // bottom
-  new THREE.MeshStandardMaterial({ map: sidesTexture, metalness: 0.2, roughness: 0.55 }), // front
-  new THREE.MeshStandardMaterial({ map: sidesTexture, metalness: 0.2, roughness: 0.55 }), // back
+  materials.right,
+  materials.left,
+  materials.top,
+  materials.bottom,
+  materials.front,
+  materials.back,
 ];
+
+const sideMaterials = [materials.right, materials.left, materials.front, materials.back];
+const topBottomMaterials = [materials.top, materials.bottom];
+
+let currentSidesTexture = defaultSidesTexture;
+let currentTopBottomTexture = defaultTopBottomTexture;
+
+function disposeTexture(texture) {
+  if (texture && texture !== defaultSidesTexture && texture !== defaultTopBottomTexture) {
+    texture.dispose();
+  }
+}
+
+function updateMaterialsMap(targetMaterials, texture) {
+  targetMaterials.forEach((material) => {
+    material.map = texture;
+    material.needsUpdate = true;
+  });
+}
+
+function setSidesTexture(texture) {
+  const nextTexture = texture || defaultSidesTexture;
+  const previousTexture = currentSidesTexture;
+  currentSidesTexture = nextTexture;
+  updateMaterialsMap(sideMaterials, nextTexture);
+  if (previousTexture !== nextTexture) {
+    disposeTexture(previousTexture);
+  }
+}
+
+function setTopBottomTexture(texture) {
+  const nextTexture = texture || defaultTopBottomTexture;
+  const previousTexture = currentTopBottomTexture;
+  currentTopBottomTexture = nextTexture;
+  updateMaterialsMap(topBottomMaterials, nextTexture);
+  if (previousTexture !== nextTexture) {
+    disposeTexture(previousTexture);
+  }
+}
+
+function loadTextureFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Nie udało się odczytać pliku.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const texture = new THREE.Texture(image);
+        resolve(applyTextureSettings(texture));
+      };
+      image.onerror = () => reject(new Error('Nie udało się wczytać obrazu.'));
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const ORIENTATIONS = [
   {
@@ -501,6 +576,38 @@ function handleKeyDown(event) {
   }
 }
 
+async function handleTextureInputChange(event, target) {
+  const input = event.target;
+  const file = input.files && input.files[0];
+
+  try {
+    if (!file) {
+      if (target === 'topBottom') {
+        setTopBottomTexture(null);
+      } else {
+        setSidesTexture(null);
+      }
+      return;
+    }
+
+    const texture = await loadTextureFromFile(file);
+    if (target === 'topBottom') {
+      setTopBottomTexture(texture);
+    } else {
+      setSidesTexture(texture);
+    }
+  } catch (error) {
+    console.error(error);
+    alert(error.message);
+    input.value = '';
+    if (target === 'topBottom') {
+      setTopBottomTexture(null);
+    } else {
+      setSidesTexture(null);
+    }
+  }
+}
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -511,11 +618,32 @@ window.addEventListener('keydown', handleKeyDown);
 
 const resetButton = document.querySelector('#reset');
 const exportButton = document.querySelector('#export');
+const topBottomInput = document.querySelector('#texture-top-bottom');
+const sidesInput = document.querySelector('#texture-sides');
+const resetTexturesButton = document.querySelector('#reset-textures');
 
 addBlock({ coord: { x: 0, y: 0, z: 0 }, orientationIndex: 0 });
 
 resetButton.addEventListener('click', clearScene);
 exportButton.addEventListener('click', exportLayout);
+if (topBottomInput) {
+  topBottomInput.addEventListener('change', (event) => handleTextureInputChange(event, 'topBottom'));
+}
+if (sidesInput) {
+  sidesInput.addEventListener('change', (event) => handleTextureInputChange(event, 'sides'));
+}
+if (resetTexturesButton) {
+  resetTexturesButton.addEventListener('click', () => {
+    if (topBottomInput) {
+      topBottomInput.value = '';
+    }
+    if (sidesInput) {
+      sidesInput.value = '';
+    }
+    setTopBottomTexture(null);
+    setSidesTexture(null);
+  });
+}
 
 function animate() {
   controls.update();

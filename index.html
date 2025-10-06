@@ -28,6 +28,19 @@
         <button id="reset">Wyczyść scenę</button>
         <button id="export">Eksportuj układ</button>
       </div>
+      <fieldset>
+        <legend>Tekstury klocka</legend>
+        <label for="texture-top-bottom">
+          Góra / dół
+          <input id="texture-top-bottom" type="file" accept="image/*" />
+        </label>
+        <label for="texture-sides">
+          Ściany
+          <input id="texture-sides" type="file" accept="image/*" />
+        </label>
+        <button type="button" id="reset-textures" class="secondary">Przywróć domyślne tekstury</button>
+        <p class="hint">Pozostaw pola puste, aby użyć domyślnego wzoru.</p>
+      </fieldset>
       <details>
         <summary>Jak to działa?</summary>
         <p>
