@@ -128,6 +128,15 @@ label {
   font-size: 0.82rem;
 }
 
+select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 30, 60, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  color: inherit;
+}
+
 input[type='file'] {
   font-size: 0.8rem;
 }
