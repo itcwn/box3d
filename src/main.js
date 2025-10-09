@@ -61,6 +61,8 @@ scene.add(ground);
 
 const blockGeometry = new THREE.BoxGeometry(BLOCK_SIZE.x, BLOCK_SIZE.y, BLOCK_SIZE.z);
 
+const textureLoader = new THREE.TextureLoader();
+
 function applyTextureSettings(texture, { repeat = false } = {}) {
   if (repeat) {
     texture.wrapS = THREE.RepeatWrapping;
@@ -75,68 +77,14 @@ function applyTextureSettings(texture, { repeat = false } = {}) {
   return texture;
 }
 
-function createCanvasTexture(drawFn) {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  drawFn(ctx, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  return applyTextureSettings(texture, { repeat: true });
+function loadDefaultTexture(path, options) {
+  const texture = textureLoader.load(path);
+  return applyTextureSettings(texture, options);
 }
 
-const defaultTopBottomTexture = createCanvasTexture((ctx, size) => {
-  ctx.fillStyle = '#d7b58a';
-  ctx.fillRect(0, 0, size, size);
+const defaultTopBottomTexture = loadDefaultTexture('t1.png');
 
-  ctx.strokeStyle = '#c49a6c';
-  ctx.lineWidth = size * 0.08;
-  ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, size - ctx.lineWidth, size - ctx.lineWidth);
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-  ctx.lineWidth = size * 0.04;
-  ctx.beginPath();
-  ctx.moveTo(0, size * 0.33);
-  ctx.lineTo(size, size * 0.33);
-  ctx.moveTo(0, size * 0.66);
-  ctx.lineTo(size, size * 0.66);
-  ctx.stroke();
-});
-
-const defaultSidesTexture = createCanvasTexture((ctx, size) => {
-  ctx.fillStyle = '#b98a5a';
-  ctx.fillRect(0, 0, size, size);
-
-  const plankCount = 4;
-  const plankHeight = size / plankCount;
-  ctx.fillStyle = '#a67846';
-  for (let i = 0; i < plankCount; i += 1) {
-    ctx.fillRect(0, i * plankHeight + plankHeight * 0.05, size, plankHeight * 0.9);
-  }
-
-  ctx.strokeStyle = '#8c6239';
-  ctx.lineWidth = size * 0.02;
-  for (let i = 1; i < plankCount; i += 1) {
-    const y = i * plankHeight;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(size, y);
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = size * 0.015;
-  const segmentWidth = size / plankCount;
-  for (let i = 0; i <= plankCount; i += 1) {
-    const offset = (i % 2 === 0 ? 0.2 : -0.2) * segmentWidth;
-    const x = i * segmentWidth + offset;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, size);
-    ctx.stroke();
-  }
-});
+const defaultSidesTexture = loadDefaultTexture('t2.png');
 
 const materials = {
   right: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
