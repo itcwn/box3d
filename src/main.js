@@ -60,8 +60,7 @@ ground.name = 'ground';
 scene.add(ground);
 
 let blockGeometry = new THREE.BoxGeometry(blockSize.x, blockSize.y, blockSize.z);
-
-const textureLoader = new THREE.TextureLoader();
+const geometryCache = new Map([['standard', blockGeometry]]);
 
 function applyTextureSettings(texture, { repeat = false } = {}) {
   if (repeat) {
@@ -77,14 +76,68 @@ function applyTextureSettings(texture, { repeat = false } = {}) {
   return texture;
 }
 
-function loadDefaultTexture(path, options) {
-  const texture = textureLoader.load(path);
-  return applyTextureSettings(texture, options);
+function createCanvasTexture(drawFn) {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  drawFn(ctx, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  return applyTextureSettings(texture, { repeat: true });
 }
 
-const defaultTopBottomTexture = loadDefaultTexture('t1.png');
+const defaultTopBottomTexture = createCanvasTexture((ctx, size) => {
+  ctx.fillStyle = '#d7b58a';
+  ctx.fillRect(0, 0, size, size);
 
-const defaultSidesTexture = loadDefaultTexture('t2.png');
+  ctx.strokeStyle = '#c49a6c';
+  ctx.lineWidth = size * 0.08;
+  ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, size - ctx.lineWidth, size - ctx.lineWidth);
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = size * 0.04;
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.33);
+  ctx.lineTo(size, size * 0.33);
+  ctx.moveTo(0, size * 0.66);
+  ctx.lineTo(size, size * 0.66);
+  ctx.stroke();
+});
+
+const defaultSidesTexture = createCanvasTexture((ctx, size) => {
+  ctx.fillStyle = '#b98a5a';
+  ctx.fillRect(0, 0, size, size);
+
+  const plankCount = 4;
+  const plankHeight = size / plankCount;
+  ctx.fillStyle = '#a67846';
+  for (let i = 0; i < plankCount; i += 1) {
+    ctx.fillRect(0, i * plankHeight + plankHeight * 0.05, size, plankHeight * 0.9);
+  }
+
+  ctx.strokeStyle = '#8c6239';
+  ctx.lineWidth = size * 0.02;
+  for (let i = 1; i < plankCount; i += 1) {
+    const y = i * plankHeight;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(size, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = size * 0.015;
+  const segmentWidth = size / plankCount;
+  for (let i = 0; i <= plankCount; i += 1) {
+    const offset = (i % 2 === 0 ? 0.2 : -0.2) * segmentWidth;
+    const x = i * segmentWidth + offset;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, size);
+    ctx.stroke();
+  }
+});
 
 const materials = {
   right: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
@@ -181,54 +234,31 @@ function createBoxOrientations(size) {
 }
 
 function createConnectorOrientations(size) {
+  const orientationSize = { x: size.x, y: size.y, z: size.z };
   return [
-    {
-      name: 'default',
-      rotation: new THREE.Euler(0, 0, 0),
-      size: { x: size.x, y: size.y, z: size.z },
-    },
+    { name: 'square-down', rotation: new THREE.Euler(0, 0, 0), size: { ...orientationSize } },
+    { name: 'square-up', rotation: new THREE.Euler(Math.PI, 0, 0), size: { ...orientationSize } },
+    { name: 'square-front', rotation: new THREE.Euler(-Math.PI / 2, 0, 0), size: { ...orientationSize } },
+    { name: 'square-back', rotation: new THREE.Euler(Math.PI / 2, 0, 0), size: { ...orientationSize } },
+    { name: 'square-right', rotation: new THREE.Euler(0, 0, Math.PI / 2), size: { ...orientationSize } },
+    { name: 'square-left', rotation: new THREE.Euler(0, 0, -Math.PI / 2), size: { ...orientationSize } },
   ];
 }
 
 function createConnectorGeometry() {
   const size = 6;
   const half = size / 2;
-  const slotWidth = size * 0.22;
-  const slotDepth = size * 0.18;
-  const baseInset = size * 0.16;
 
   const shape = new THREE.Shape();
-  shape.moveTo(-half + slotWidth, half);
-  shape.lineTo(half - slotWidth, half);
-  shape.lineTo(half, half - slotDepth);
-  shape.lineTo(half, -half + slotWidth);
-  shape.lineTo(half - baseInset, -half + slotWidth);
-  shape.lineTo(half - baseInset, -half);
-  shape.lineTo(-half + baseInset, -half);
-  shape.lineTo(-half + baseInset, -half + slotWidth);
-  shape.lineTo(-half, -half + slotWidth);
-  shape.lineTo(-half, half - slotDepth);
-  shape.lineTo(-half + slotWidth, half - slotDepth);
+  shape.moveTo(-half, -half);
+  shape.lineTo(half, -half);
+  shape.lineTo(half, half);
   shape.closePath();
-
-  const circleRadius = size * 0.18;
-  const circleHole = new THREE.Path();
-  circleHole.absellipse(0, 0, circleRadius, circleRadius, 0, Math.PI * 2);
-  shape.holes.push(circleHole);
-
-  const triangleInset = size * 0.28;
-  const triangleDepth = size * 0.32;
-  const triangle = new THREE.Path();
-  triangle.moveTo(-triangleInset, -size * 0.05);
-  triangle.lineTo(0, -triangleDepth);
-  triangle.lineTo(triangleInset, -size * 0.05);
-  triangle.closePath();
-  shape.holes.push(triangle);
 
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: size,
     bevelEnabled: false,
-    curveSegments: 24,
+    curveSegments: 4,
     steps: 1,
   });
 
@@ -293,32 +323,30 @@ function updateBlockCount() {
   }
 }
 
+function getGeometryForType(type) {
+  if (!geometryCache.has(type.id)) {
+    geometryCache.set(type.id, type.createGeometry());
+  }
+  return geometryCache.get(type.id);
+}
+
 function setBlockType(typeId, options = {}) {
-  const { skipModel = false, skipSceneReset = false, force = false } = options;
+  const { force = false, initializeModel = false } = options;
   const nextType = BLOCK_TYPES[typeId] || BLOCK_TYPES.standard;
 
   if (!force && currentBlockType === nextType) {
-    if (!skipModel && typeof nextType.buildModel === 'function') {
+    if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
       nextType.buildModel();
     }
     return;
   }
 
-  if (!skipSceneReset) {
-    clearScene();
-  }
-
-  const previousGeometry = blockGeometry;
-
   blockSize = { ...nextType.size };
-  blockGeometry = nextType.createGeometry();
+  blockGeometry = getGeometryForType(nextType);
   currentBlockMaterials = nextType.createMaterials();
   orientations = nextType.createOrientations(blockSize);
   currentBlockType = nextType;
   currentOrientationIndex = 0;
-
-  controls.target.set(0, blockSize.y / 2, 0);
-  camera.lookAt(0, blockSize.y / 2, 0);
 
   if (previewMesh) {
     previewMesh.geometry = blockGeometry;
@@ -329,14 +357,10 @@ function setBlockType(typeId, options = {}) {
     blockTypeSelect.value = nextType.id;
   }
 
-  if (previousGeometry && previousGeometry !== blockGeometry) {
-    previousGeometry.dispose();
-  }
-
   hoveredPlacement = null;
   updatePreview();
 
-  if (!skipModel && typeof nextType.buildModel === 'function') {
+  if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
     nextType.buildModel();
   }
 }
@@ -818,7 +842,7 @@ blockCountElement = document.querySelector('#block-count');
 updateBlockCount();
 
 const initialTypeId = blockTypeSelect ? blockTypeSelect.value : currentBlockType.id;
-setBlockType(initialTypeId, { skipSceneReset: true });
+setBlockType(initialTypeId, { force: true, initializeModel: true });
 
 if (blockTypeSelect) {
   blockTypeSelect.addEventListener('change', (event) => {
