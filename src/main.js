@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const BLOCK_SIZE = { x: 6, y: 12, z: 6 }; // cm units
+let blockSize = { x: 6, y: 12, z: 6 }; // cm units
 const GRID_LIMIT = 10; // how many blocks allowed from center on X/Z
 const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
 
@@ -12,7 +12,7 @@ scene.background = new THREE.Color('#f3f5fa');
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(90, 110, 120);
-camera.lookAt(0, BLOCK_SIZE.y / 2, 0);
+camera.lookAt(0, blockSize.y / 2, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
@@ -23,7 +23,7 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.target.set(0, BLOCK_SIZE.y / 2, 0);
+controls.target.set(0, blockSize.y / 2, 0);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
@@ -41,10 +41,10 @@ dirLight.shadow.camera.bottom = -160;
 scene.add(dirLight);
 
 const gridSize = GRID_LIMIT * 2 + 1;
-const gridHelper = new THREE.GridHelper(gridSize * BLOCK_SIZE.x, gridSize, '#8cc63f', '#8cc63f');
+const gridHelper = new THREE.GridHelper(gridSize * blockSize.x, gridSize, '#8cc63f', '#8cc63f');
 scene.add(gridHelper);
 
-const groundGeometry = new THREE.PlaneGeometry(gridSize * BLOCK_SIZE.x, gridSize * BLOCK_SIZE.z);
+const groundGeometry = new THREE.PlaneGeometry(gridSize * blockSize.x, gridSize * blockSize.z);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: '#e5f3d8',
   metalness: 0,
@@ -59,7 +59,8 @@ ground.receiveShadow = true;
 ground.name = 'ground';
 scene.add(ground);
 
-const blockGeometry = new THREE.BoxGeometry(BLOCK_SIZE.x, BLOCK_SIZE.y, BLOCK_SIZE.z);
+let blockGeometry = new THREE.BoxGeometry(blockSize.x, blockSize.y, blockSize.z);
+const geometryCache = new Map([['standard', blockGeometry]]);
 
 function applyTextureSettings(texture, { repeat = false } = {}) {
   if (repeat) {
@@ -212,23 +213,99 @@ function loadTextureFromFile(file) {
   });
 }
 
-const ORIENTATIONS = [
-  {
-    name: 'standing',
-    rotation: new THREE.Euler(0, 0, 0),
-    size: { x: BLOCK_SIZE.x, y: BLOCK_SIZE.y, z: BLOCK_SIZE.z },
+function createBoxOrientations(size) {
+  return [
+    {
+      name: 'standing',
+      rotation: new THREE.Euler(0, 0, 0),
+      size: { x: size.x, y: size.y, z: size.z },
+    },
+    {
+      name: 'lying-x',
+      rotation: new THREE.Euler(0, 0, Math.PI / 2),
+      size: { x: size.y, y: size.x, z: size.z },
+    },
+    {
+      name: 'lying-z',
+      rotation: new THREE.Euler(-Math.PI / 2, 0, 0),
+      size: { x: size.x, y: size.x, z: size.y },
+    },
+  ];
+}
+
+function createConnectorOrientations(size) {
+  const orientationSize = { x: size.x, y: size.y, z: size.z };
+  return [
+    { name: 'square-down', rotation: new THREE.Euler(0, 0, 0), size: { ...orientationSize } },
+    { name: 'square-up', rotation: new THREE.Euler(Math.PI, 0, 0), size: { ...orientationSize } },
+    { name: 'square-front', rotation: new THREE.Euler(-Math.PI / 2, 0, 0), size: { ...orientationSize } },
+    { name: 'square-back', rotation: new THREE.Euler(Math.PI / 2, 0, 0), size: { ...orientationSize } },
+    { name: 'square-right', rotation: new THREE.Euler(0, 0, Math.PI / 2), size: { ...orientationSize } },
+    { name: 'square-left', rotation: new THREE.Euler(0, 0, -Math.PI / 2), size: { ...orientationSize } },
+  ];
+}
+
+function createConnectorGeometry() {
+  const size = 6;
+  const half = size / 2;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-half, -half);
+  shape.lineTo(half, -half);
+  shape.lineTo(half, half);
+  shape.closePath();
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: size,
+    bevelEnabled: false,
+    curveSegments: 4,
+    steps: 1,
+  });
+
+  geometry.center();
+  geometry.computeVertexNormals();
+
+  return geometry;
+}
+
+const connectorFrontMaterial = new THREE.MeshStandardMaterial({
+  color: '#d9b88d',
+  metalness: 0.2,
+  roughness: 0.65,
+});
+
+const connectorSideMaterial = new THREE.MeshStandardMaterial({
+  color: '#b98d58',
+  metalness: 0.2,
+  roughness: 0.6,
+});
+
+const connectorMaterials = [connectorFrontMaterial, connectorSideMaterial];
+
+const BLOCK_TYPES = {
+  standard: {
+    id: 'standard',
+    label: 'Klocek 6×6×12 cm',
+    size: { x: 6, y: 12, z: 6 },
+    createGeometry: () => new THREE.BoxGeometry(6, 12, 6),
+    createMaterials: () => blockMaterials,
+    createOrientations: (size) => createBoxOrientations(size),
+    buildModel: () => buildCastleModel(),
   },
-  {
-    name: 'lying-x',
-    rotation: new THREE.Euler(0, 0, Math.PI / 2),
-    size: { x: BLOCK_SIZE.y, y: BLOCK_SIZE.x, z: BLOCK_SIZE.z },
+  connector: {
+    id: 'connector',
+    label: 'Łącznik 6×6×6 cm',
+    size: { x: 6, y: 6, z: 6 },
+    createGeometry: () => createConnectorGeometry(),
+    createMaterials: () => connectorMaterials,
+    createOrientations: (size) => createConnectorOrientations(size),
+    buildModel: () => buildConnectorModel(),
   },
-  {
-    name: 'lying-z',
-    rotation: new THREE.Euler(-Math.PI / 2, 0, 0),
-    size: { x: BLOCK_SIZE.x, y: BLOCK_SIZE.x, z: BLOCK_SIZE.y },
-  },
-];
+};
+
+let currentBlockType = BLOCK_TYPES.standard;
+let currentBlockMaterials = blockMaterials;
+let orientations = createBoxOrientations(blockSize);
 
 const EPSILON = 1e-3;
 
@@ -237,10 +314,54 @@ const blocks = new Set();
 let currentOrientationIndex = 0;
 /** @type {HTMLElement | null} */
 let blockCountElement = null;
+/** @type {HTMLSelectElement | null} */
+let blockTypeSelect = null;
 
 function updateBlockCount() {
   if (blockCountElement) {
     blockCountElement.textContent = blocks.size.toString();
+  }
+}
+
+function getGeometryForType(type) {
+  if (!geometryCache.has(type.id)) {
+    geometryCache.set(type.id, type.createGeometry());
+  }
+  return geometryCache.get(type.id);
+}
+
+function setBlockType(typeId, options = {}) {
+  const { force = false, initializeModel = false } = options;
+  const nextType = BLOCK_TYPES[typeId] || BLOCK_TYPES.standard;
+
+  if (!force && currentBlockType === nextType) {
+    if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
+      nextType.buildModel();
+    }
+    return;
+  }
+
+  blockSize = { ...nextType.size };
+  blockGeometry = getGeometryForType(nextType);
+  currentBlockMaterials = nextType.createMaterials();
+  orientations = nextType.createOrientations(blockSize);
+  currentBlockType = nextType;
+  currentOrientationIndex = 0;
+
+  if (previewMesh) {
+    previewMesh.geometry = blockGeometry;
+    previewMesh.rotation.copy(getOrientation(currentOrientationIndex).rotation);
+  }
+
+  if (blockTypeSelect && blockTypeSelect.value !== nextType.id) {
+    blockTypeSelect.value = nextType.id;
+  }
+
+  hoveredPlacement = null;
+  updatePreview();
+
+  if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
+    nextType.buildModel();
   }
 }
 
@@ -267,14 +388,18 @@ let hoveredPlacement = null;
 let hoveredBlock = null;
 
 function getOrientation(index) {
-  return ORIENTATIONS[((index % ORIENTATIONS.length) + ORIENTATIONS.length) % ORIENTATIONS.length];
+  const count = orientations.length;
+  if (count === 0) {
+    throw new Error('Brak zdefiniowanych orientacji dla bieżącego modelu.');
+  }
+  return orientations[((index % count) + count) % count];
 }
 
 function toPosition(coord, orientation) {
   return new THREE.Vector3(
-    coord.x * BLOCK_SIZE.x,
-    coord.y * BLOCK_SIZE.y + orientation.size.y / 2,
-    coord.z * BLOCK_SIZE.z
+    coord.x * blockSize.x,
+    coord.y * blockSize.y + orientation.size.y / 2,
+    coord.z * blockSize.z
   );
 }
 
@@ -288,9 +413,9 @@ function getBoundingBox(coord, orientation) {
 
 function coordFromCenter(center, orientation) {
   return {
-    x: roundCoordValue(center.x / BLOCK_SIZE.x),
-    y: roundCoordValue((center.y - orientation.size.y / 2) / BLOCK_SIZE.y),
-    z: roundCoordValue(center.z / BLOCK_SIZE.z),
+    x: roundCoordValue(center.x / blockSize.x),
+    y: roundCoordValue((center.y - orientation.size.y / 2) / blockSize.y),
+    z: roundCoordValue(center.z / blockSize.z),
   };
 }
 
@@ -330,13 +455,13 @@ function horizontalSupportOverlap(boxA, boxB) {
 function isInsideBounds(coord, orientation) {
   const halfX = orientation.size.x / 2;
   const halfZ = orientation.size.z / 2;
-  const posX = coord.x * BLOCK_SIZE.x;
-  const posZ = coord.z * BLOCK_SIZE.z;
+  const posX = coord.x * blockSize.x;
+  const posZ = coord.z * blockSize.z;
 
-  const withinX = posX + halfX <= GRID_LIMIT * BLOCK_SIZE.x && posX - halfX >= -GRID_LIMIT * BLOCK_SIZE.x;
-  const withinZ = posZ + halfZ <= GRID_LIMIT * BLOCK_SIZE.z && posZ - halfZ >= -GRID_LIMIT * BLOCK_SIZE.z;
-  const topY = coord.y * BLOCK_SIZE.y + orientation.size.y;
-  const withinY = coord.y >= 0 && topY <= (HEIGHT_LIMIT + 1) * BLOCK_SIZE.y;
+  const withinX = posX + halfX <= GRID_LIMIT * blockSize.x && posX - halfX >= -GRID_LIMIT * blockSize.x;
+  const withinZ = posZ + halfZ <= GRID_LIMIT * blockSize.z && posZ - halfZ >= -GRID_LIMIT * blockSize.z;
+  const topY = coord.y * blockSize.y + orientation.size.y;
+  const withinY = coord.y >= 0 && topY <= (HEIGHT_LIMIT + 1) * blockSize.y;
 
   return withinX && withinZ && withinY;
 }
@@ -392,7 +517,7 @@ function canPlace(coord, orientation) {
 
 function addBlock(placement) {
   const orientation = getOrientation(placement.orientationIndex);
-  const mesh = new THREE.Mesh(blockGeometry, blockMaterials);
+  const mesh = new THREE.Mesh(blockGeometry, currentBlockMaterials);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.rotation.copy(orientation.rotation);
@@ -433,9 +558,9 @@ function getPlacementFromIntersection(intersection) {
     const point = intersection.point;
     const orientation = getOrientation(currentOrientationIndex);
     const coord = {
-      x: roundCoordValue(snapAxis(point.x, BLOCK_SIZE.x, orientation.size.x)),
+      x: roundCoordValue(snapAxis(point.x, blockSize.x, orientation.size.x)),
       y: 0,
-      z: roundCoordValue(snapAxis(point.z, BLOCK_SIZE.z, orientation.size.z)),
+      z: roundCoordValue(snapAxis(point.z, blockSize.z, orientation.size.z)),
     };
     return {
       coord,
@@ -470,8 +595,8 @@ function getPlacementFromIntersection(intersection) {
     const coord = coordFromCenter(baseCenter.add(offset), orientation);
 
     if (snappedNormal.y !== 0) {
-      coord.x = roundCoordValue(snapAxis(intersection.point.x, BLOCK_SIZE.x, orientation.size.x));
-      coord.z = roundCoordValue(snapAxis(intersection.point.z, BLOCK_SIZE.z, orientation.size.z));
+      coord.x = roundCoordValue(snapAxis(intersection.point.x, blockSize.x, orientation.size.x));
+      coord.z = roundCoordValue(snapAxis(intersection.point.z, blockSize.z, orientation.size.z));
     }
 
     if (coord.y < 0) {
@@ -559,7 +684,7 @@ function exportLayout() {
 
   const payload = {
     unit: 'cm',
-    blockSize: BLOCK_SIZE,
+    blockSize: blockSize,
     count: entries.length,
     coordinates: entries.map((item) => ({
       ...item.coord,
@@ -577,7 +702,11 @@ renderer.domElement.addEventListener('pointermove', handlePointer);
 renderer.domElement.addEventListener('pointerdown', handleClick);
 
 function cycleOrientation(direction) {
-  currentOrientationIndex = (currentOrientationIndex + direction + ORIENTATIONS.length) % ORIENTATIONS.length;
+  const count = orientations.length;
+  if (count === 0) {
+    return;
+  }
+  currentOrientationIndex = (currentOrientationIndex + direction + count) % count;
   previewMesh.rotation.copy(getOrientation(currentOrientationIndex).rotation);
   if (hoveredPlacement) {
     hoveredPlacement = null;
@@ -637,8 +766,6 @@ const exportButton = document.querySelector('#export');
 const topBottomInput = document.querySelector('#texture-top-bottom');
 const sidesInput = document.querySelector('#texture-sides');
 const resetTexturesButton = document.querySelector('#reset-textures');
-blockCountElement = document.querySelector('#block-count');
-updateBlockCount();
 
 function buildCastleModel() {
   const placements = [];
@@ -690,7 +817,38 @@ function buildCastleModel() {
   });
 }
 
-buildCastleModel();
+function buildConnectorModel() {
+  const placements = [
+    { coord: { x: 0, y: 0, z: 0 }, orientationIndex: 0 },
+    { coord: { x: 1, y: 0, z: 0 }, orientationIndex: 0 },
+    { coord: { x: 1, y: 0, z: 1 }, orientationIndex: 0 },
+    { coord: { x: 0, y: 0, z: 1 }, orientationIndex: 0 },
+    { coord: { x: 0, y: 1, z: 0 }, orientationIndex: 0 },
+    { coord: { x: 1, y: 1, z: 1 }, orientationIndex: 0 },
+    { coord: { x: 0, y: 1, z: 1 }, orientationIndex: 0 },
+    { coord: { x: 1, y: 1, z: 0 }, orientationIndex: 0 },
+  ];
+
+  placements.forEach((placement) => {
+    const orientation = getOrientation(placement.orientationIndex);
+    if (canPlace(placement.coord, orientation)) {
+      addBlock(placement);
+    }
+  });
+}
+
+blockTypeSelect = document.querySelector('#block-type');
+blockCountElement = document.querySelector('#block-count');
+updateBlockCount();
+
+const initialTypeId = blockTypeSelect ? blockTypeSelect.value : currentBlockType.id;
+setBlockType(initialTypeId, { force: true, initializeModel: true });
+
+if (blockTypeSelect) {
+  blockTypeSelect.addEventListener('change', (event) => {
+    setBlockType(event.target.value);
+  });
+}
 
 resetButton.addEventListener('click', clearScene);
 exportButton.addEventListener('click', exportLayout);
