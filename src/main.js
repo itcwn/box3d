@@ -235,6 +235,14 @@ const EPSILON = 1e-3;
 /** @type {Set<THREE.Mesh>} */
 const blocks = new Set();
 let currentOrientationIndex = 0;
+/** @type {HTMLElement | null} */
+let blockCountElement = null;
+
+function updateBlockCount() {
+  if (blockCountElement) {
+    blockCountElement.textContent = blocks.size.toString();
+  }
+}
 
 const previewMaterial = new THREE.MeshStandardMaterial({
   color: '#4caf50',
@@ -397,11 +405,13 @@ function addBlock(placement) {
   };
   scene.add(mesh);
   blocks.add(mesh);
+  updateBlockCount();
 }
 
 function removeBlock(mesh) {
   scene.remove(mesh);
   blocks.delete(mesh);
+  updateBlockCount();
 }
 
 function snapAxis(value, baseSize, axisSize) {
@@ -458,6 +468,11 @@ function getPlacementFromIntersection(intersection) {
       snappedNormal.z * ((baseOrientation.size.z + orientation.size.z) / 2)
     );
     const coord = coordFromCenter(baseCenter.add(offset), orientation);
+
+    if (snappedNormal.y !== 0) {
+      coord.x = roundCoordValue(snapAxis(intersection.point.x, BLOCK_SIZE.x, orientation.size.x));
+      coord.z = roundCoordValue(snapAxis(intersection.point.z, BLOCK_SIZE.z, orientation.size.z));
+    }
 
     if (coord.y < 0) {
       return null;
@@ -530,6 +545,7 @@ function handleClick(event) {
 function clearScene() {
   blocks.forEach((mesh) => scene.remove(mesh));
   blocks.clear();
+  updateBlockCount();
   hoveredPlacement = null;
   updatePreview();
 }
@@ -621,8 +637,60 @@ const exportButton = document.querySelector('#export');
 const topBottomInput = document.querySelector('#texture-top-bottom');
 const sidesInput = document.querySelector('#texture-sides');
 const resetTexturesButton = document.querySelector('#reset-textures');
+blockCountElement = document.querySelector('#block-count');
+updateBlockCount();
 
-addBlock({ coord: { x: 0, y: 0, z: 0 }, orientationIndex: 0 });
+function buildCastleModel() {
+  const placements = [];
+
+  const towerPositions = [
+    { x: -2, z: -2 },
+    { x: 2, z: -2 },
+    { x: -2, z: 2 },
+    { x: 2, z: 2 },
+  ];
+  const towerHeight = 4;
+  towerPositions.forEach((position) => {
+    for (let level = 0; level < towerHeight; level += 1) {
+      placements.push({ coord: { x: position.x, y: level, z: position.z }, orientationIndex: 0 });
+    }
+  });
+
+  placements.push(
+    { coord: { x: -0.5, y: 0, z: -2 }, orientationIndex: 1 },
+    { coord: { x: 0.5, y: 0, z: -2 }, orientationIndex: 1 },
+    { coord: { x: -0.5, y: 0, z: 2 }, orientationIndex: 1 },
+    { coord: { x: 0.5, y: 0, z: 2 }, orientationIndex: 1 },
+    { coord: { x: -2, y: 0, z: -0.5 }, orientationIndex: 2 },
+    { coord: { x: -2, y: 0, z: 0.5 }, orientationIndex: 2 },
+    { coord: { x: 2, y: 0, z: -0.5 }, orientationIndex: 2 },
+    { coord: { x: 2, y: 0, z: 0.5 }, orientationIndex: 2 },
+    { coord: { x: 0, y: 0, z: -1 }, orientationIndex: 1 },
+    { coord: { x: 0, y: 0, z: 1 }, orientationIndex: 1 }
+  );
+
+  placements.push(
+    { coord: { x: 0, y: 0.5, z: -2 }, orientationIndex: 1 },
+    { coord: { x: 0, y: 0.5, z: 2 }, orientationIndex: 1 },
+    { coord: { x: -2, y: 0.5, z: 0 }, orientationIndex: 2 },
+    { coord: { x: 2, y: 0.5, z: 0 }, orientationIndex: 2 }
+  );
+
+  placements.push(
+    { coord: { x: 0, y: 0, z: 0 }, orientationIndex: 0 },
+    { coord: { x: 0, y: 1, z: 0 }, orientationIndex: 0 },
+    { coord: { x: 0, y: 2, z: 0 }, orientationIndex: 1 }
+  );
+
+  placements.forEach((placement) => {
+    const orientation = getOrientation(placement.orientationIndex);
+    if (canPlace(placement.coord, orientation)) {
+      addBlock(placement);
+    }
+  });
+}
+
+buildCastleModel();
 
 resetButton.addEventListener('click', clearScene);
 exportButton.addEventListener('click', exportLayout);
