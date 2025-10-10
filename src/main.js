@@ -332,10 +332,31 @@ let currentOrientationIndex = 0;
 let blockCountElement = null;
 /** @type {HTMLSelectElement | null} */
 let blockTypeSelect = null;
+/** @type {HTMLElement | null} */
+let orientationIndicatorElement = null;
+/** @type {HTMLButtonElement | null} */
+let rotatePrevButton = null;
+/** @type {HTMLButtonElement | null} */
+let rotateNextButton = null;
 
 function updateBlockCount() {
   if (blockCountElement) {
     blockCountElement.textContent = blocks.size.toString();
+  }
+}
+
+function syncOrientationControls() {
+  const total = orientations.length;
+  if (orientationIndicatorElement) {
+    orientationIndicatorElement.textContent = total > 0 ? `${currentOrientationIndex + 1} / ${total}` : '—';
+  }
+
+  const canRotate = total > 1;
+  if (rotatePrevButton) {
+    rotatePrevButton.disabled = !canRotate;
+  }
+  if (rotateNextButton) {
+    rotateNextButton.disabled = !canRotate;
   }
 }
 
@@ -384,6 +405,8 @@ function setBlockType(typeId, options = {}) {
   if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
     nextType.buildModel();
   }
+
+  syncOrientationControls();
 }
 
 const previewMaterial = new THREE.MeshStandardMaterial({
@@ -733,6 +756,7 @@ function cycleOrientation(direction) {
     hoveredPlacement = null;
     updatePreview();
   }
+  syncOrientationControls();
 }
 
 function handleKeyDown(event) {
@@ -781,6 +805,22 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('keydown', handleKeyDown);
+
+orientationIndicatorElement = document.querySelector('#orientation-indicator');
+rotatePrevButton = document.querySelector('#rotate-prev');
+rotateNextButton = document.querySelector('#rotate-next');
+
+if (rotatePrevButton) {
+  rotatePrevButton.addEventListener('click', () => {
+    cycleOrientation(-1);
+  });
+}
+
+if (rotateNextButton) {
+  rotateNextButton.addEventListener('click', () => {
+    cycleOrientation(1);
+  });
+}
 
 const resetButton = document.querySelector('#reset');
 const exportButton = document.querySelector('#export');

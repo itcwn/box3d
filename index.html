@@ -19,9 +19,9 @@
     <aside class="ui-panel">
       <h1>Projektant klocków 6×6×12 cm</h1>
       <p>
-        Lewy przycisk myszy – dodawanie klocka w podświetlonym miejscu.<br />
-        <kbd>Shift</kbd> + lewy przycisk – usuwanie wskazanego klocka.<br />
-        <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót klocka o 90° w przód/tył.<br />
+        Lewy przycisk myszy lub dotknięcie – dodawanie klocka w podświetlonym miejscu.<br />
+        <kbd>Shift</kbd> + kliknięcie – usuwanie wskazanego klocka.<br />
+        Przyciski obracania lub <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót klocka o 90°.<br />
         Rolka myszy/gesty – przybliżenie, obrót widoku wykonujemy przeciągając myszą.
       </p>
       <p class="block-counter">
@@ -34,6 +34,19 @@
           <option value="connector">Łącznik 6×6×6 cm</option>
         </select>
       </label>
+      <section class="orientation-controls" aria-label="Sterowanie orientacją klocka">
+        <div class="orientation-status">
+          Orientacja: <strong id="orientation-indicator">—</strong>
+        </div>
+        <div class="orientation-buttons">
+          <button type="button" id="rotate-prev" class="secondary" aria-label="Obróć w lewo">
+            ↺ Obróć
+          </button>
+          <button type="button" id="rotate-next" class="secondary" aria-label="Obróć w prawo">
+            Obróć ↻
+          </button>
+        </div>
+      </section>
       <div class="controls">
         <button id="reset">Wyczyść scenę</button>
         <button id="export">Eksportuj układ</button>
