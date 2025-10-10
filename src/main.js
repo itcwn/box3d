@@ -39,6 +39,8 @@ dirLight.shadow.camera.right = 160;
 dirLight.shadow.camera.top = 160;
 dirLight.shadow.camera.bottom = -160;
 scene.add(dirLight);
+dirLight.target.position.set(0, blockSize.y / 2, 0);
+scene.add(dirLight.target);
 
 const gridSize = GRID_LIMIT * 2 + 1;
 const gridHelper = new THREE.GridHelper(gridSize * blockSize.x, gridSize, '#8cc63f', '#8cc63f');
@@ -62,6 +64,8 @@ scene.add(ground);
 let blockGeometry = new THREE.BoxGeometry(blockSize.x, blockSize.y, blockSize.z);
 const geometryCache = new Map([['standard', blockGeometry]]);
 
+const textureLoader = new THREE.TextureLoader();
+
 function applyTextureSettings(texture, { repeat = false } = {}) {
   if (repeat) {
     texture.wrapS = THREE.RepeatWrapping;
@@ -76,68 +80,80 @@ function applyTextureSettings(texture, { repeat = false } = {}) {
   return texture;
 }
 
-function createCanvasTexture(drawFn) {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  drawFn(ctx, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  return applyTextureSettings(texture, { repeat: true });
+function createDefaultTexture(url, settings) {
+  const resolvedUrl = typeof url === 'string' ? url : url.href;
+  const texture = textureLoader.load(resolvedUrl, () => {
+    applyTextureSettings(texture, settings);
+  });
+  return applyTextureSettings(texture, settings);
 }
 
-const defaultTopBottomTexture = createCanvasTexture((ctx, size) => {
-  ctx.fillStyle = '#d7b58a';
-  ctx.fillRect(0, 0, size, size);
+const defaultTopBottomTexture = createDefaultTexture(new URL('./t1.png', import.meta.url));
+const defaultSidesTexture = createDefaultTexture(new URL('./t2.png', import.meta.url));
 
-  ctx.strokeStyle = '#c49a6c';
-  ctx.lineWidth = size * 0.08;
-  ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, size - ctx.lineWidth, size - ctx.lineWidth);
+function normalizeAzimuth(value) {
+  return (value % 360 + 360) % 360;
+}
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-  ctx.lineWidth = size * 0.04;
-  ctx.beginPath();
-  ctx.moveTo(0, size * 0.33);
-  ctx.lineTo(size, size * 0.33);
-  ctx.moveTo(0, size * 0.66);
-  ctx.lineTo(size, size * 0.66);
-  ctx.stroke();
-});
+function getLightHex(light) {
+  return `#${light.color.getHexString()}`;
+}
 
-const defaultSidesTexture = createCanvasTexture((ctx, size) => {
-  ctx.fillStyle = '#b98a5a';
-  ctx.fillRect(0, 0, size, size);
-
-  const plankCount = 4;
-  const plankHeight = size / plankCount;
-  ctx.fillStyle = '#a67846';
-  for (let i = 0; i < plankCount; i += 1) {
-    ctx.fillRect(0, i * plankHeight + plankHeight * 0.05, size, plankHeight * 0.9);
+function normalizeHexColor(value) {
+  if (typeof value !== 'string') {
+    return '#ffffff';
   }
-
-  ctx.strokeStyle = '#8c6239';
-  ctx.lineWidth = size * 0.02;
-  for (let i = 1; i < plankCount; i += 1) {
-    const y = i * plankHeight;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(size, y);
-    ctx.stroke();
+  const normalized = value.trim().toLowerCase();
+  const hex = normalized.startsWith('#') ? normalized.slice(1) : normalized;
+  if (/^[0-9a-f]{6}$/.test(hex)) {
+    return `#${hex}`;
   }
+  return '#ffffff';
+}
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = size * 0.015;
-  const segmentWidth = size / plankCount;
-  for (let i = 0; i <= plankCount; i += 1) {
-    const offset = (i % 2 === 0 ? 0.2 : -0.2) * segmentWidth;
-    const x = i * segmentWidth + offset;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, size);
-    ctx.stroke();
+function getDirectionalStateFromPosition(position) {
+  const distance = position.length();
+  if (distance === 0) {
+    return { distance: 1, azimuth: 0, elevation: 90 };
   }
-});
+  const azimuth = THREE.MathUtils.radToDeg(Math.atan2(position.z, position.x));
+  const elevation = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(position.y / distance, -1, 1)));
+  return {
+    distance,
+    azimuth: normalizeAzimuth(azimuth),
+    elevation,
+  };
+}
+
+const defaultDirectionalState = getDirectionalStateFromPosition(dirLight.position.clone());
+
+const defaultLighting = {
+  ambientIntensity: ambientLight.intensity,
+  ambientColor: getLightHex(ambientLight),
+  directionalIntensity: dirLight.intensity,
+  directionalColor: getLightHex(dirLight),
+  directionalDistance: defaultDirectionalState.distance,
+  directionalAzimuth: defaultDirectionalState.azimuth,
+  directionalElevation: defaultDirectionalState.elevation,
+};
+
+const lightingState = { ...defaultLighting };
+
+function updateDirectionalLightPosition() {
+  const phi = THREE.MathUtils.degToRad(90 - lightingState.directionalElevation);
+  const theta = THREE.MathUtils.degToRad(lightingState.directionalAzimuth);
+  const radius = Math.max(lightingState.directionalDistance, 1);
+
+  const sinPhi = Math.sin(phi);
+  dirLight.position.set(
+    radius * sinPhi * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * sinPhi * Math.sin(theta)
+  );
+  dirLight.target.updateMatrixWorld();
+}
+
+updateDirectionalLightPosition();
 
 const materials = {
   right: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
@@ -356,6 +372,11 @@ function setBlockType(typeId, options = {}) {
   if (blockTypeSelect && blockTypeSelect.value !== nextType.id) {
     blockTypeSelect.value = nextType.id;
   }
+
+  controls.target.set(0, blockSize.y / 2, 0);
+  dirLight.target.position.set(0, blockSize.y / 2, 0);
+  dirLight.target.updateMatrixWorld();
+  updateDirectionalLightPosition();
 
   hoveredPlacement = null;
   updatePreview();
@@ -766,6 +787,52 @@ const exportButton = document.querySelector('#export');
 const topBottomInput = document.querySelector('#texture-top-bottom');
 const sidesInput = document.querySelector('#texture-sides');
 const resetTexturesButton = document.querySelector('#reset-textures');
+const ambientIntensityInput = document.querySelector('#ambient-intensity');
+const ambientColorInput = document.querySelector('#ambient-color');
+const directionalIntensityInput = document.querySelector('#directional-intensity');
+const directionalColorInput = document.querySelector('#directional-color');
+const directionalAzimuthInput = document.querySelector('#directional-azimuth');
+const directionalElevationInput = document.querySelector('#directional-elevation');
+const directionalDistanceInput = document.querySelector('#directional-distance');
+const resetLightingButton = document.querySelector('#reset-lighting');
+
+function applyLightingState() {
+  ambientLight.intensity = lightingState.ambientIntensity;
+  ambientLight.color.set(lightingState.ambientColor);
+  dirLight.intensity = lightingState.directionalIntensity;
+  dirLight.color.set(lightingState.directionalColor);
+  updateDirectionalLightPosition();
+}
+
+function syncLightingControls() {
+  if (ambientIntensityInput) {
+    ambientIntensityInput.value = lightingState.ambientIntensity.toFixed(2);
+  }
+  if (ambientColorInput) {
+    ambientColorInput.value = lightingState.ambientColor;
+  }
+  if (directionalIntensityInput) {
+    directionalIntensityInput.value = lightingState.directionalIntensity.toFixed(2);
+  }
+  if (directionalColorInput) {
+    directionalColorInput.value = lightingState.directionalColor;
+  }
+  if (directionalAzimuthInput) {
+    directionalAzimuthInput.value = lightingState.directionalAzimuth.toFixed(0);
+  }
+  if (directionalElevationInput) {
+    directionalElevationInput.value = lightingState.directionalElevation.toFixed(0);
+  }
+  if (directionalDistanceInput) {
+    directionalDistanceInput.value = lightingState.directionalDistance.toFixed(0);
+  }
+}
+
+function resetLighting() {
+  Object.assign(lightingState, defaultLighting);
+  applyLightingState();
+  syncLightingControls();
+}
 
 function buildCastleModel() {
   const placements = [];
@@ -870,6 +937,90 @@ if (resetTexturesButton) {
     setSidesTexture(null);
   });
 }
+
+if (ambientIntensityInput) {
+  ambientIntensityInput.addEventListener('input', (event) => {
+    const value = parseFloat(event.target.value);
+    if (!Number.isNaN(value)) {
+      lightingState.ambientIntensity = THREE.MathUtils.clamp(value, 0, 1.5);
+      ambientLight.intensity = lightingState.ambientIntensity;
+      ambientIntensityInput.value = lightingState.ambientIntensity.toFixed(2);
+    }
+  });
+}
+
+if (ambientColorInput) {
+  ambientColorInput.addEventListener('input', (event) => {
+    const value = normalizeHexColor(event.target.value);
+    lightingState.ambientColor = value;
+    ambientLight.color.set(value);
+  });
+}
+
+if (directionalIntensityInput) {
+  directionalIntensityInput.addEventListener('input', (event) => {
+    const value = parseFloat(event.target.value);
+    if (!Number.isNaN(value)) {
+      lightingState.directionalIntensity = THREE.MathUtils.clamp(value, 0, 2);
+      dirLight.intensity = lightingState.directionalIntensity;
+      directionalIntensityInput.value = lightingState.directionalIntensity.toFixed(2);
+    }
+  });
+}
+
+if (directionalColorInput) {
+  directionalColorInput.addEventListener('input', (event) => {
+    const value = normalizeHexColor(event.target.value);
+    lightingState.directionalColor = value;
+    dirLight.color.set(value);
+  });
+}
+
+if (directionalAzimuthInput) {
+  directionalAzimuthInput.addEventListener('input', (event) => {
+    const value = parseFloat(event.target.value);
+    if (!Number.isNaN(value)) {
+      lightingState.directionalAzimuth = normalizeAzimuth(value);
+      updateDirectionalLightPosition();
+      directionalAzimuthInput.value = lightingState.directionalAzimuth.toFixed(0);
+    }
+  });
+}
+
+if (directionalElevationInput) {
+  directionalElevationInput.addEventListener('input', (event) => {
+    const value = parseFloat(event.target.value);
+    if (!Number.isNaN(value)) {
+      lightingState.directionalElevation = THREE.MathUtils.clamp(value, -10, 89);
+      updateDirectionalLightPosition();
+      const formatted = lightingState.directionalElevation.toFixed(0);
+      if (directionalElevationInput.value !== formatted) {
+        directionalElevationInput.value = formatted;
+      }
+    }
+  });
+}
+
+if (directionalDistanceInput) {
+  directionalDistanceInput.addEventListener('input', (event) => {
+    const value = parseFloat(event.target.value);
+    if (!Number.isNaN(value)) {
+      lightingState.directionalDistance = THREE.MathUtils.clamp(value, 40, 400);
+      updateDirectionalLightPosition();
+      const formatted = lightingState.directionalDistance.toFixed(0);
+      if (directionalDistanceInput.value !== formatted) {
+        directionalDistanceInput.value = formatted;
+      }
+    }
+  });
+}
+
+if (resetLightingButton) {
+  resetLightingButton.addEventListener('click', resetLighting);
+}
+
+applyLightingState();
+syncLightingControls();
 
 function animate() {
   controls.update();
