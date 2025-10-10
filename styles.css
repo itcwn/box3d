@@ -60,6 +60,31 @@ canvas {
   flex-wrap: wrap;
 }
 
+.orientation-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 30, 60, 0.08);
+  background: rgba(15, 30, 60, 0.04);
+}
+
+.orientation-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.orientation-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.orientation-buttons button {
+  flex: 1 1 140px;
+}
+
 button {
   padding: 8px 14px;
   border-radius: 8px;
@@ -82,10 +107,27 @@ button:active {
   box-shadow: none;
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 button.secondary {
   background: rgba(45, 156, 219, 0.12);
   color: #0f68d7;
   box-shadow: none;
+}
+
+button.secondary:disabled {
+  background: rgba(45, 156, 219, 0.1);
+  color: rgba(15, 104, 215, 0.6);
 }
 
 button.secondary:hover {
