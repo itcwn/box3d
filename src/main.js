@@ -7,8 +7,10 @@ const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
 
 const container = document.querySelector('#app');
 
+const defaultBackgroundColor = '#f3f5fa';
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#f3f5fa');
+scene.background = new THREE.Color(defaultBackgroundColor);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(90, 110, 120);
@@ -178,6 +180,7 @@ const topBottomMaterials = [materials.top, materials.bottom];
 
 let currentSidesTexture = defaultSidesTexture;
 let currentTopBottomTexture = defaultTopBottomTexture;
+let currentBackgroundTexture = null;
 
 const ORIENTATION_LABELS = {
   standing: 'Stojący',
@@ -213,6 +216,35 @@ function updateMaterialsMap(targetMaterials, texture) {
     material.map = texture;
     material.needsUpdate = true;
   });
+}
+
+function disposeBackgroundTexture(texture) {
+  if (texture) {
+    texture.dispose();
+  }
+}
+
+function clearBackgroundTexture() {
+  if (currentBackgroundTexture) {
+    disposeBackgroundTexture(currentBackgroundTexture);
+    currentBackgroundTexture = null;
+  }
+}
+
+function setSceneBackgroundColor(color, { skipInputSync = false, skipImageReset = false } = {}) {
+  const normalized = normalizeHexColor(color);
+  clearBackgroundTexture();
+  scene.background = new THREE.Color(normalized);
+  if (!skipInputSync && backgroundColorInput) {
+    backgroundColorInput.value = normalized;
+  }
+  if (!skipImageReset && backgroundImageInput) {
+    backgroundImageInput.value = '';
+  }
+}
+
+function resetBackground() {
+  setSceneBackgroundColor(defaultBackgroundColor);
 }
 
 function setSidesTexture(texture) {
@@ -377,6 +409,10 @@ let orientationPreviewMesh = null;
 let orientationPreviewLight = null;
 /** @type {THREE.Mesh | null} */
 let orientationPreviewGround = null;
+/** @type {HTMLInputElement | null} */
+let backgroundColorInput = null;
+/** @type {HTMLInputElement | null} */
+let backgroundImageInput = null;
 
 function updateBlockCount() {
   if (blockCountElement) {
@@ -925,6 +961,30 @@ async function handleTextureInputChange(event, target) {
   }
 }
 
+async function handleBackgroundImageChange(event) {
+  const input = event.target;
+  const file = input.files && input.files[0];
+
+  if (!file) {
+    setSceneBackgroundColor(backgroundColorInput ? backgroundColorInput.value : defaultBackgroundColor, {
+      skipImageReset: true,
+    });
+    return;
+  }
+
+  try {
+    const texture = await loadTextureFromFile(file);
+    clearBackgroundTexture();
+    currentBackgroundTexture = texture;
+    scene.background = texture;
+  } catch (error) {
+    console.error(error);
+    alert(error.message);
+    input.value = '';
+    resetBackground();
+  }
+}
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -959,6 +1019,9 @@ const exportButton = document.querySelector('#export');
 const topBottomInput = document.querySelector('#texture-top-bottom');
 const sidesInput = document.querySelector('#texture-sides');
 const resetTexturesButton = document.querySelector('#reset-textures');
+backgroundColorInput = document.querySelector('#background-color');
+backgroundImageInput = document.querySelector('#background-image');
+const resetBackgroundButton = document.querySelector('#reset-background');
 const ambientIntensityInput = document.querySelector('#ambient-intensity');
 const ambientColorInput = document.querySelector('#ambient-color');
 const directionalIntensityInput = document.querySelector('#directional-intensity');
@@ -1107,6 +1170,31 @@ if (resetTexturesButton) {
     }
     setTopBottomTexture(null);
     setSidesTexture(null);
+  });
+}
+
+if (backgroundColorInput) {
+  const normalized = normalizeHexColor(backgroundColorInput.value || defaultBackgroundColor);
+  backgroundColorInput.value = normalized;
+  backgroundColorInput.addEventListener('input', (event) => {
+    const value = normalizeHexColor(event.target.value);
+    setSceneBackgroundColor(value);
+    if (backgroundColorInput && backgroundColorInput.value !== value) {
+      backgroundColorInput.value = value;
+    }
+  });
+}
+
+if (backgroundImageInput) {
+  backgroundImageInput.addEventListener('change', handleBackgroundImageChange);
+}
+
+if (resetBackgroundButton) {
+  resetBackgroundButton.addEventListener('click', () => {
+    if (backgroundColorInput) {
+      backgroundColorInput.value = defaultBackgroundColor;
+    }
+    resetBackground();
   });
 }
 
