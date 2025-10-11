@@ -200,6 +200,13 @@ let currentSidesTexture = defaultSidesTexture;
 let currentTopBottomTexture = defaultTopBottomTexture;
 let currentBackgroundTexture = null;
 
+const ROTUNDA_ORIENTATION_LABELS = Object.fromEntries(
+  Array.from({ length: 6 }, (_, index) => [
+    `arc-${index * 60}`,
+    `Segment ${index * 60}°`,
+  ])
+);
+
 const ORIENTATION_LABELS = {
   standing: 'Stojący',
   'lying-x': 'Leżący (oś X)',
@@ -210,6 +217,7 @@ const ORIENTATION_LABELS = {
   'square-back': 'Kwadrat (tył)',
   'square-right': 'Kwadrat (prawo)',
   'square-left': 'Kwadrat (lewo)',
+  ...ROTUNDA_ORIENTATION_LABELS,
 };
 
 function formatOrientationLabel(value) {
@@ -334,6 +342,15 @@ function createConnectorOrientations(size) {
   ];
 }
 
+function createRotundaOrientations(size) {
+  const angleStep = Math.PI / 3;
+  return Array.from({ length: 6 }, (_, index) => ({
+    name: `arc-${index * 60}`,
+    rotation: new THREE.Euler(0, angleStep * index, 0),
+    size: { x: size.x, y: size.y, z: size.z },
+  }));
+}
+
 function createConnectorGeometry() {
   const size = 6;
   const half = size / 2;
@@ -371,6 +388,41 @@ const connectorSideMaterial = new THREE.MeshStandardMaterial({
 
 const connectorMaterials = [connectorFrontMaterial, connectorSideMaterial];
 
+function createRotundaGeometry() {
+  const height = 12;
+  const outerRadius = 3;
+  const innerRadius = 1.4;
+  const thetaLength = Math.PI / 3;
+
+  const shape = new THREE.Shape();
+  const start = new THREE.Vector2(
+    Math.cos(-thetaLength / 2) * outerRadius,
+    Math.sin(-thetaLength / 2) * outerRadius
+  );
+  shape.moveTo(start.x, start.y);
+  shape.absarc(0, 0, outerRadius, -thetaLength / 2, thetaLength / 2, false);
+  shape.lineTo(Math.cos(thetaLength / 2) * innerRadius, Math.sin(thetaLength / 2) * innerRadius);
+
+  const holePath = new THREE.Path();
+  holePath.absarc(0, 0, innerRadius, thetaLength / 2, -thetaLength / 2, true);
+  shape.holes.push(holePath);
+
+  const extrudeSettings = {
+    depth: height,
+    steps: 1,
+    bevelEnabled: false,
+    curveSegments: 36,
+  };
+
+  const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, height / 2, 0);
+  geometry.center();
+  geometry.computeVertexNormals();
+
+  return geometry;
+}
+
 const BLOCK_TYPES = {
   standard: {
     id: 'standard',
@@ -389,6 +441,15 @@ const BLOCK_TYPES = {
     createMaterials: () => connectorMaterials,
     createOrientations: (size) => createConnectorOrientations(size),
     buildModel: () => buildConnectorModel(),
+  },
+  rotunda: {
+    id: 'rotunda',
+    label: 'Element rotundy 12 cm',
+    size: { x: 6, y: 12, z: 6 },
+    createGeometry: () => createRotundaGeometry(),
+    createMaterials: () => blockMaterials,
+    createOrientations: (size) => createRotundaOrientations(size),
+    buildModel: () => buildRotundaModel(),
   },
 };
 
@@ -1164,6 +1225,48 @@ function buildConnectorModel() {
     { coord: { x: 0, y: 1, z: 1 }, orientationIndex: 0 },
     { coord: { x: 1, y: 1, z: 0 }, orientationIndex: 0 },
   ];
+
+  placements.forEach((placement) => {
+    const orientation = getOrientation(placement.orientationIndex);
+    if (canPlace(placement.coord, orientation)) {
+      addBlock(placement);
+    }
+  });
+}
+
+function buildRotundaModel() {
+  const angleStep = Math.PI / 3;
+  const groupDefinitions = [
+    { count: 1, baseIndex: 0, center: { x: -6, z: 0 }, radius: 0 },
+    { count: 2, baseIndex: 0, center: { x: -2, z: 0 }, radius: 0.9 },
+    { count: 3, baseIndex: 0, center: { x: 2, z: 0 }, radius: 1.2 },
+    { count: 6, baseIndex: 0, center: { x: 7, z: 0 }, radius: 1.5 },
+  ];
+
+  const placements = [];
+
+  groupDefinitions.forEach((group) => {
+    if (group.count === 1) {
+      placements.push({
+        coord: { x: group.center.x, y: 0, z: group.center.z },
+        orientationIndex: group.baseIndex % 6,
+      });
+      return;
+    }
+
+    for (let i = 0; i < group.count; i += 1) {
+      const orientationIndex = (group.baseIndex + i) % 6;
+      const angle = orientationIndex * angleStep;
+      placements.push({
+        coord: {
+          x: group.center.x + Math.cos(angle) * group.radius,
+          y: 0,
+          z: group.center.z + Math.sin(angle) * group.radius,
+        },
+        orientationIndex,
+      });
+    }
+  });
 
   placements.forEach((placement) => {
     const orientation = getOrientation(placement.orientationIndex);
