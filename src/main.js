@@ -200,11 +200,21 @@ let currentSidesTexture = defaultSidesTexture;
 let currentTopBottomTexture = defaultTopBottomTexture;
 let currentBackgroundTexture = null;
 
+const ROTUNDA_ORIENTATION_CONFIGS = [
+  { key: 'upright', label: 'Pionowa', baseRotation: new THREE.Euler(0, 0, 0) },
+  { key: 'tilt-forward', label: 'Pochylona (oś X +)', baseRotation: new THREE.Euler(Math.PI / 2, 0, 0) },
+  { key: 'tilt-backward', label: 'Pochylona (oś X -)', baseRotation: new THREE.Euler(-Math.PI / 2, 0, 0) },
+  { key: 'tilt-right', label: 'Pochylona (oś Z +)', baseRotation: new THREE.Euler(0, 0, Math.PI / 2) },
+  { key: 'tilt-left', label: 'Pochylona (oś Z -)', baseRotation: new THREE.Euler(0, 0, -Math.PI / 2) },
+];
+
 const ROTUNDA_ORIENTATION_LABELS = Object.fromEntries(
-  Array.from({ length: 4 }, (_, index) => [
-    `arc-${index * 90}`,
-    `Ćwiartka ${index * 90}°`,
-  ])
+  ROTUNDA_ORIENTATION_CONFIGS.flatMap((config) =>
+    Array.from({ length: 4 }, (_, index) => {
+      const angle = index * 90;
+      return [`arc-${config.key}-${angle}`, `Rotunda – ${config.label}, obrót ${angle}°`];
+    })
+  )
 );
 
 const ORIENTATION_LABELS = {
@@ -310,45 +320,124 @@ function loadTextureFromFile(file) {
   });
 }
 
+function createOrientationDefinition({ name, rotation, size, gridStep }) {
+  const normalizedSize = { x: size.x, y: size.y, z: size.z };
+  const defaultGridStep = {
+    x: normalizedSize.x !== 0 ? blockSize.x / normalizedSize.x : 1,
+    z: normalizedSize.z !== 0 ? blockSize.z / normalizedSize.z : 1,
+  };
+  return {
+    name,
+    rotation,
+    size: normalizedSize,
+    gridStep: {
+      x: gridStep?.x ?? defaultGridStep.x,
+      z: gridStep?.z ?? defaultGridStep.z,
+    },
+  };
+}
+
+function getGridStep(orientation, axis) {
+  const value = orientation.gridStep?.[axis];
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  const size = axis === 'x' ? orientation.size.x : orientation.size.z;
+  return size !== 0 ? blockSize[axis] / size : 1;
+}
+
 function createBoxOrientations(size) {
   return [
-    {
+    createOrientationDefinition({
       name: 'standing',
       rotation: new THREE.Euler(0, 0, 0),
       size: { x: size.x, y: size.y, z: size.z },
-    },
-    {
+    }),
+    createOrientationDefinition({
       name: 'lying-x',
       rotation: new THREE.Euler(0, 0, Math.PI / 2),
       size: { x: size.y, y: size.x, z: size.z },
-    },
-    {
+    }),
+    createOrientationDefinition({
       name: 'lying-z',
       rotation: new THREE.Euler(-Math.PI / 2, 0, 0),
       size: { x: size.x, y: size.x, z: size.y },
-    },
+    }),
   ];
 }
 
 function createConnectorOrientations(size) {
   const orientationSize = { x: size.x, y: size.y, z: size.z };
   return [
-    { name: 'square-down', rotation: new THREE.Euler(0, 0, 0), size: { ...orientationSize } },
-    { name: 'square-up', rotation: new THREE.Euler(Math.PI, 0, 0), size: { ...orientationSize } },
-    { name: 'square-front', rotation: new THREE.Euler(-Math.PI / 2, 0, 0), size: { ...orientationSize } },
-    { name: 'square-back', rotation: new THREE.Euler(Math.PI / 2, 0, 0), size: { ...orientationSize } },
-    { name: 'square-right', rotation: new THREE.Euler(0, 0, Math.PI / 2), size: { ...orientationSize } },
-    { name: 'square-left', rotation: new THREE.Euler(0, 0, -Math.PI / 2), size: { ...orientationSize } },
+    createOrientationDefinition({
+      name: 'square-down',
+      rotation: new THREE.Euler(0, 0, 0),
+      size: { ...orientationSize },
+    }),
+    createOrientationDefinition({
+      name: 'square-up',
+      rotation: new THREE.Euler(Math.PI, 0, 0),
+      size: { ...orientationSize },
+    }),
+    createOrientationDefinition({
+      name: 'square-front',
+      rotation: new THREE.Euler(-Math.PI / 2, 0, 0),
+      size: { ...orientationSize },
+    }),
+    createOrientationDefinition({
+      name: 'square-back',
+      rotation: new THREE.Euler(Math.PI / 2, 0, 0),
+      size: { ...orientationSize },
+    }),
+    createOrientationDefinition({
+      name: 'square-right',
+      rotation: new THREE.Euler(0, 0, Math.PI / 2),
+      size: { ...orientationSize },
+    }),
+    createOrientationDefinition({
+      name: 'square-left',
+      rotation: new THREE.Euler(0, 0, -Math.PI / 2),
+      size: { ...orientationSize },
+    }),
   ];
+}
+
+function computeAxisAlignedSize(baseSize, rotation) {
+  const matrix = new THREE.Matrix4().makeRotationFromEuler(rotation);
+  const axes = [
+    new THREE.Vector3(baseSize.x, 0, 0).applyMatrix4(matrix),
+    new THREE.Vector3(0, baseSize.y, 0).applyMatrix4(matrix),
+    new THREE.Vector3(0, 0, baseSize.z).applyMatrix4(matrix),
+  ];
+  const round = (value) => Math.round(value * 1e6) / 1e6;
+  return {
+    x: round(Math.abs(axes[0].x) + Math.abs(axes[1].x) + Math.abs(axes[2].x)),
+    y: round(Math.abs(axes[0].y) + Math.abs(axes[1].y) + Math.abs(axes[2].y)),
+    z: round(Math.abs(axes[0].z) + Math.abs(axes[1].z) + Math.abs(axes[2].z)),
+  };
 }
 
 function createRotundaOrientations(size) {
   const angleStep = Math.PI / 2;
-  return Array.from({ length: 4 }, (_, index) => ({
-    name: `arc-${index * 90}`,
-    rotation: new THREE.Euler(0, angleStep * index, 0),
-    size: { x: size.x, y: size.y, z: size.z },
-  }));
+  const baseSize = { x: size.x, y: size.y, z: size.z };
+  return ROTUNDA_ORIENTATION_CONFIGS.flatMap((config) => {
+    const baseQuaternion = new THREE.Quaternion().setFromEuler(config.baseRotation);
+
+    return Array.from({ length: 4 }, (_, index) => {
+      const angle = angleStep * index;
+      const rotationQuaternion = baseQuaternion
+        .clone()
+        .multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle, 0)));
+      const rotation = new THREE.Euler().setFromQuaternion(rotationQuaternion, 'XYZ');
+      const orientationSize = computeAxisAlignedSize(baseSize, rotation);
+      return createOrientationDefinition({
+        name: `arc-${config.key}-${index * 90}`,
+        rotation,
+        size: orientationSize,
+        gridStep: { x: 1, z: 1 },
+      });
+    });
+  });
 }
 
 function createConnectorGeometry() {
@@ -695,9 +784,9 @@ function getBoundingBox(coord, orientation) {
 
 function coordFromCenter(center, orientation) {
   return {
-    x: roundCoordValue(center.x / blockSize.x),
+    x: roundCoordValue(snapAxis(center.x, blockSize.x, getGridStep(orientation, 'x'))),
     y: roundCoordValue((center.y - orientation.size.y / 2) / blockSize.y),
-    z: roundCoordValue(center.z / blockSize.z),
+    z: roundCoordValue(snapAxis(center.z, blockSize.z, getGridStep(orientation, 'z'))),
   };
 }
 
@@ -821,10 +910,10 @@ function removeBlock(mesh) {
   updateBlockCount();
 }
 
-function snapAxis(value, baseSize, axisSize) {
-  const step = baseSize / axisSize;
+function snapAxis(value, baseSize, step) {
+  const effectiveStep = step > 0 ? step : 1;
   const normalized = value / baseSize;
-  return Math.round(normalized / step) * step;
+  return Math.round(normalized / effectiveStep) * effectiveStep;
 }
 
 function roundCoordValue(value) {
@@ -840,9 +929,9 @@ function getPlacementFromIntersection(intersection) {
     const point = intersection.point;
     const orientation = getOrientation(currentOrientationIndex);
     const coord = {
-      x: roundCoordValue(snapAxis(point.x, blockSize.x, orientation.size.x)),
+      x: roundCoordValue(snapAxis(point.x, blockSize.x, getGridStep(orientation, 'x'))),
       y: 0,
-      z: roundCoordValue(snapAxis(point.z, blockSize.z, orientation.size.z)),
+      z: roundCoordValue(snapAxis(point.z, blockSize.z, getGridStep(orientation, 'z'))),
     };
     return {
       coord,
@@ -877,8 +966,8 @@ function getPlacementFromIntersection(intersection) {
     const coord = coordFromCenter(baseCenter.add(offset), orientation);
 
     if (snappedNormal.y !== 0) {
-      coord.x = roundCoordValue(snapAxis(intersection.point.x, blockSize.x, orientation.size.x));
-      coord.z = roundCoordValue(snapAxis(intersection.point.z, blockSize.z, orientation.size.z));
+      coord.x = roundCoordValue(snapAxis(intersection.point.x, blockSize.x, getGridStep(orientation, 'x')));
+      coord.z = roundCoordValue(snapAxis(intersection.point.z, blockSize.z, getGridStep(orientation, 'z')));
     }
 
     if (coord.y < 0) {
@@ -1305,7 +1394,7 @@ if (ambientIntensityInput) {
   ambientIntensityInput.addEventListener('input', (event) => {
     const value = parseFloat(event.target.value);
     if (!Number.isNaN(value)) {
-      lightingState.ambientIntensity = THREE.MathUtils.clamp(value, 0, 1.5);
+      lightingState.ambientIntensity = THREE.MathUtils.clamp(value, 0, 3);
       ambientLight.intensity = lightingState.ambientIntensity;
       ambientIntensityInput.value = lightingState.ambientIntensity.toFixed(2);
     }
@@ -1324,7 +1413,7 @@ if (directionalIntensityInput) {
   directionalIntensityInput.addEventListener('input', (event) => {
     const value = parseFloat(event.target.value);
     if (!Number.isNaN(value)) {
-      lightingState.directionalIntensity = THREE.MathUtils.clamp(value, 0, 2);
+      lightingState.directionalIntensity = THREE.MathUtils.clamp(value, 0, 4);
       dirLight.intensity = lightingState.directionalIntensity;
       directionalIntensityInput.value = lightingState.directionalIntensity.toFixed(2);
     }
