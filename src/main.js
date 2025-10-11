@@ -12,9 +12,12 @@ const defaultBackgroundColor = '#f3f5fa';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(defaultBackgroundColor);
 
+const defaultCameraPosition = new THREE.Vector3(90, 110, 120);
+const defaultCameraTarget = new THREE.Vector3(0, blockSize.y / 2, 0);
+
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(90, 110, 120);
-camera.lookAt(0, blockSize.y / 2, 0);
+camera.position.copy(defaultCameraPosition);
+camera.lookAt(defaultCameraTarget);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
@@ -25,7 +28,9 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.target.set(0, blockSize.y / 2, 0);
+controls.target.copy(defaultCameraTarget);
+controls.update();
+controls.saveState();
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
@@ -156,6 +161,19 @@ function updateDirectionalLightPosition() {
 }
 
 updateDirectionalLightPosition();
+
+function resetCameraView() {
+  controls.reset();
+}
+
+function updateGridToggleButtonState(button) {
+  if (!button) {
+    return;
+  }
+  const visible = gridHelper.visible;
+  button.textContent = visible ? 'Ukryj siatkę' : 'Pokaż siatkę';
+  button.setAttribute('aria-pressed', visible ? 'true' : 'false');
+}
 
 const materials = {
   right: new THREE.MeshStandardMaterial({ map: defaultSidesTexture, metalness: 0.2, roughness: 0.55 }),
@@ -999,6 +1017,8 @@ rotatePrevButton = document.querySelector('#rotate-prev');
 rotateNextButton = document.querySelector('#rotate-next');
 orientationPreviewElement = document.querySelector('#orientation-preview');
 orientationPreviewDetailsElement = document.querySelector('#orientation-preview-details');
+const resetViewButton = document.querySelector('#reset-view');
+const toggleGridButton = document.querySelector('#toggle-grid');
 
 initOrientationPreview();
 
@@ -1011,6 +1031,20 @@ if (rotatePrevButton) {
 if (rotateNextButton) {
   rotateNextButton.addEventListener('click', () => {
     cycleOrientation(1);
+  });
+}
+
+if (resetViewButton) {
+  resetViewButton.addEventListener('click', () => {
+    resetCameraView();
+  });
+}
+
+if (toggleGridButton) {
+  updateGridToggleButtonState(toggleGridButton);
+  toggleGridButton.addEventListener('click', () => {
+    gridHelper.visible = !gridHelper.visible;
+    updateGridToggleButtonState(toggleGridButton);
   });
 }
 

@@ -132,6 +132,16 @@ canvas {
   display: block;
 }
 
+.view-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.view-controls button {
+  flex: 1 1 140px;
+}
+
 button {
   padding: 8px 14px;
   border-radius: 8px;
