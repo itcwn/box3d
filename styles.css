@@ -26,6 +26,7 @@ canvas {
   top: 16px;
   left: 16px;
   max-width: 320px;
+  max-height: calc(100vh - 32px);
   padding: 16px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
@@ -36,6 +37,7 @@ canvas {
   flex-direction: column;
   gap: 12px;
   z-index: 10;
+  overflow-y: auto;
 }
 
 .ui-panel h1 {
@@ -83,6 +85,51 @@ canvas {
 
 .orientation-buttons button {
   flex: 1 1 140px;
+}
+
+.orientation-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 30, 60, 0.08);
+  background: rgba(15, 30, 60, 0.04);
+}
+
+.orientation-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orientation-preview-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.orientation-preview-details {
+  font-size: 0.8rem;
+  color: rgba(27, 31, 36, 0.75);
+}
+
+.orientation-preview-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 30, 60, 0.08);
+  background: rgba(243, 245, 250, 0.9);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orientation-preview-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 button {

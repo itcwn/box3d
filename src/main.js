@@ -179,6 +179,29 @@ const topBottomMaterials = [materials.top, materials.bottom];
 let currentSidesTexture = defaultSidesTexture;
 let currentTopBottomTexture = defaultTopBottomTexture;
 
+const ORIENTATION_LABELS = {
+  standing: 'Stojący',
+  'lying-x': 'Leżący (oś X)',
+  'lying-z': 'Leżący (oś Z)',
+  'square-down': 'Kwadrat (dół)',
+  'square-up': 'Kwadrat (góra)',
+  'square-front': 'Kwadrat (przód)',
+  'square-back': 'Kwadrat (tył)',
+  'square-right': 'Kwadrat (prawo)',
+  'square-left': 'Kwadrat (lewo)',
+};
+
+function formatOrientationLabel(value) {
+  if (!value) {
+    return '—';
+  }
+  if (ORIENTATION_LABELS[value]) {
+    return ORIENTATION_LABELS[value];
+  }
+  const normalized = value.replace(/[-_]+/g, ' ').trim();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 function disposeTexture(texture) {
   if (texture && texture !== defaultSidesTexture && texture !== defaultTopBottomTexture) {
     texture.dispose();
@@ -338,6 +361,22 @@ let orientationIndicatorElement = null;
 let rotatePrevButton = null;
 /** @type {HTMLButtonElement | null} */
 let rotateNextButton = null;
+/** @type {HTMLElement | null} */
+let orientationPreviewElement = null;
+/** @type {HTMLElement | null} */
+let orientationPreviewDetailsElement = null;
+/** @type {THREE.Scene | null} */
+let orientationPreviewScene = null;
+/** @type {THREE.PerspectiveCamera | null} */
+let orientationPreviewCamera = null;
+/** @type {THREE.WebGLRenderer | null} */
+let orientationPreviewRenderer = null;
+/** @type {THREE.Mesh | null} */
+let orientationPreviewMesh = null;
+/** @type {THREE.DirectionalLight | null} */
+let orientationPreviewLight = null;
+/** @type {THREE.Mesh | null} */
+let orientationPreviewGround = null;
 
 function updateBlockCount() {
   if (blockCountElement) {
@@ -358,6 +397,92 @@ function syncOrientationControls() {
   if (rotateNextButton) {
     rotateNextButton.disabled = !canRotate;
   }
+}
+
+function resizeOrientationPreviewRenderer() {
+  if (!orientationPreviewRenderer || !orientationPreviewElement || !orientationPreviewCamera) {
+    return;
+  }
+  const size = Math.max(orientationPreviewElement.clientWidth, 1);
+  orientationPreviewRenderer.setPixelRatio(window.devicePixelRatio);
+  orientationPreviewRenderer.setSize(size, size, false);
+  orientationPreviewCamera.aspect = 1;
+  orientationPreviewCamera.updateProjectionMatrix();
+}
+
+function updateOrientationPreviewCamera() {
+  if (!orientationPreviewCamera || !orientationPreviewLight) {
+    return;
+  }
+  const orientation = getOrientation(currentOrientationIndex);
+  const maxDimension = Math.max(orientation.size.x, orientation.size.y, orientation.size.z);
+  const distance = maxDimension * 2.4;
+  orientationPreviewCamera.position.set(distance, distance, distance);
+  orientationPreviewCamera.lookAt(0, 0, 0);
+  orientationPreviewLight.position.set(distance * 1.2, distance * 1.4, distance * 1.1);
+  orientationPreviewLight.target.position.set(0, 0, 0);
+  orientationPreviewLight.target.updateMatrixWorld();
+}
+
+function updateOrientationPreview(options = {}) {
+  if (!orientationPreviewMesh) {
+    return;
+  }
+
+  const orientation = getOrientation(currentOrientationIndex);
+  orientationPreviewMesh.geometry = blockGeometry;
+  orientationPreviewMesh.material = currentBlockMaterials;
+  orientationPreviewMesh.rotation.copy(orientation.rotation);
+  orientationPreviewMesh.position.set(0, 0, 0);
+
+  if (orientationPreviewGround) {
+    orientationPreviewGround.position.set(0, -orientation.size.y / 2, 0);
+  }
+
+  if (options.resetCamera) {
+    updateOrientationPreviewCamera();
+  }
+
+  if (orientationPreviewDetailsElement) {
+    orientationPreviewDetailsElement.textContent = `${currentBlockType.label} • ${formatOrientationLabel(orientation.name)}`;
+  }
+}
+
+function initOrientationPreview() {
+  if (orientationPreviewMesh || !orientationPreviewElement) {
+    return;
+  }
+
+  orientationPreviewScene = new THREE.Scene();
+  orientationPreviewScene.background = new THREE.Color('#f6f8fb');
+
+  orientationPreviewCamera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000);
+
+  orientationPreviewRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  orientationPreviewRenderer.shadowMap.enabled = false;
+  orientationPreviewRenderer.setClearAlpha(0);
+  orientationPreviewElement.appendChild(orientationPreviewRenderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  orientationPreviewLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  orientationPreviewScene.add(ambient);
+  orientationPreviewScene.add(orientationPreviewLight);
+  orientationPreviewLight.target.position.set(0, 0, 0);
+  orientationPreviewScene.add(orientationPreviewLight.target);
+
+  const groundGeometry = new THREE.PlaneGeometry(60, 60);
+  const groundMaterial = new THREE.MeshStandardMaterial({ color: '#dbe6f4', metalness: 0, roughness: 1, side: THREE.DoubleSide });
+  orientationPreviewGround = new THREE.Mesh(groundGeometry, groundMaterial);
+  orientationPreviewGround.rotateX(-Math.PI / 2);
+  orientationPreviewScene.add(orientationPreviewGround);
+
+  orientationPreviewMesh = new THREE.Mesh(blockGeometry, currentBlockMaterials);
+  orientationPreviewMesh.castShadow = false;
+  orientationPreviewMesh.receiveShadow = false;
+  orientationPreviewScene.add(orientationPreviewMesh);
+
+  resizeOrientationPreviewRenderer();
+  updateOrientationPreview({ resetCamera: true });
 }
 
 function getGeometryForType(type) {
@@ -406,6 +531,7 @@ function setBlockType(typeId, options = {}) {
     nextType.buildModel();
   }
 
+  updateOrientationPreview({ resetCamera: true });
   syncOrientationControls();
 }
 
@@ -757,6 +883,7 @@ function cycleOrientation(direction) {
     updatePreview();
   }
   syncOrientationControls();
+  updateOrientationPreview();
 }
 
 function handleKeyDown(event) {
@@ -802,6 +929,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  resizeOrientationPreviewRenderer();
 });
 
 window.addEventListener('keydown', handleKeyDown);
@@ -809,6 +937,10 @@ window.addEventListener('keydown', handleKeyDown);
 orientationIndicatorElement = document.querySelector('#orientation-indicator');
 rotatePrevButton = document.querySelector('#rotate-prev');
 rotateNextButton = document.querySelector('#rotate-next');
+orientationPreviewElement = document.querySelector('#orientation-preview');
+orientationPreviewDetailsElement = document.querySelector('#orientation-preview-details');
+
+initOrientationPreview();
 
 if (rotatePrevButton) {
   rotatePrevButton.addEventListener('click', () => {
@@ -1065,6 +1197,9 @@ syncLightingControls();
 function animate() {
   controls.update();
   renderer.render(scene, camera);
+  if (orientationPreviewRenderer && orientationPreviewScene && orientationPreviewCamera) {
+    orientationPreviewRenderer.render(orientationPreviewScene, orientationPreviewCamera);
+  }
   requestAnimationFrame(animate);
 }
 
