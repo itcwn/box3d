@@ -68,9 +68,60 @@ canvas {
 }
 
 .block-counter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--stroke);
+  background: #f7f9fd;
+}
+
+.block-counter-total {
+  margin: 0;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--color-secondary);
+}
+
+.block-counter-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.block-counter-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.block-counter-list strong {
+  font-size: 0.9rem;
+  color: var(--color-secondary);
+}
+
+.menu-toggle {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 12;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+
+.menu-close {
+  display: none;
+  align-self: flex-end;
+  margin-bottom: 8px;
 }
 
 .controls {
@@ -284,14 +335,47 @@ summary {
 }
 
 @media (max-width: 768px) {
-  .ui-panel {
-    position: static;
-    width: calc(100% - 36px);
-    margin: 18px;
-    max-width: none;
+  .menu-toggle {
+    display: inline-flex;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
   }
 
-  body {
-    overflow: auto;
+  body.menu-collapsed .menu-toggle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .ui-panel {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    border-top: 8px solid var(--color-primary);
+    padding: 72px 22px 28px;
+    overflow-y: auto;
+    transform: translateX(0);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 11;
+  }
+
+  .menu-close {
+    display: inline-flex;
+    position: absolute;
+    top: 18px;
+    right: 18px;
+  }
+
+  body.menu-collapsed .ui-panel {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
   }
 }
