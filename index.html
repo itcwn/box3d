@@ -22,7 +22,19 @@
   </head>
   <body>
     <div id="app"></div>
-    <aside class="ui-panel">
+    <button
+      type="button"
+      id="menu-toggle"
+      class="menu-toggle secondary"
+      aria-expanded="true"
+      aria-controls="control-panel"
+    >
+      ☰ Menu
+    </button>
+    <aside id="control-panel" class="ui-panel" aria-label="Panel sterowania">
+      <button type="button" id="menu-close" class="menu-close secondary" aria-label="Zamknij panel">
+        ✕ Zamknij
+      </button>
       <h1>Projektant klocków 6×6×12 cm</h1>
       <p>
         Lewy przycisk myszy lub dotknięcie – dodawanie klocka w podświetlonym miejscu.<br />
@@ -30,9 +42,25 @@
         Przyciski obracania lub <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót klocka o 90°.<br />
         Rolka myszy/gesty – przybliżenie, obrót widoku wykonujemy przeciągając myszą.
       </p>
-      <p class="block-counter">
-        Liczba klocków: <strong id="block-count">0</strong>
-      </p>
+      <section class="block-counter" aria-live="polite">
+        <p class="block-counter-total">
+          Liczba klocków: <strong id="block-count">0</strong>
+        </p>
+        <ul id="block-count-by-type" class="block-counter-list">
+          <li data-type="standard">
+            <span>Klocek 6×6×12 cm</span>
+            <strong>0</strong>
+          </li>
+          <li data-type="connector">
+            <span>Łącznik 6×6×6 cm</span>
+            <strong>0</strong>
+          </li>
+          <li data-type="rotunda">
+            <span>Element rotundy 18 cm</span>
+            <strong>0</strong>
+          </li>
+        </ul>
+      </section>
       <label for="block-type">
         Model klocka
         <select id="block-type">

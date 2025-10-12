@@ -550,6 +550,8 @@ const blocks = new Set();
 let currentOrientationIndex = 0;
 /** @type {HTMLElement | null} */
 let blockCountElement = null;
+/** @type {HTMLElement | null} */
+let blockCountByTypeElement = null;
 /** @type {HTMLSelectElement | null} */
 let blockTypeSelect = null;
 /** @type {HTMLElement | null} */
@@ -578,10 +580,77 @@ let orientationPreviewGround = null;
 let backgroundColorInput = null;
 /** @type {HTMLInputElement | null} */
 let backgroundImageInput = null;
+/** @type {HTMLElement | null} */
+let controlPanelElement = null;
+/** @type {HTMLButtonElement | null} */
+let menuToggleButton = null;
+/** @type {HTMLButtonElement | null} */
+let menuCloseButton = null;
+const RESPONSIVE_MENU_QUERY = '(max-width: 768px)';
+/** @type {MediaQueryList | null} */
+const responsivePanelQuery = typeof window !== 'undefined' ? window.matchMedia(RESPONSIVE_MENU_QUERY) : null;
+let menuWasToggledManually = false;
 
 function updateBlockCount() {
   if (blockCountElement) {
     blockCountElement.textContent = blocks.size.toString();
+  }
+
+  if (!blockCountByTypeElement) {
+    return;
+  }
+
+  /** @type {Record<string, number>} */
+  const counts = {};
+  Object.keys(BLOCK_TYPES).forEach((typeId) => {
+    counts[typeId] = 0;
+  });
+
+  blocks.forEach((mesh) => {
+    const typeId = mesh.userData?.typeId && BLOCK_TYPES[mesh.userData.typeId] ? mesh.userData.typeId : 'standard';
+    counts[typeId] = (counts[typeId] ?? 0) + 1;
+  });
+
+  const items = blockCountByTypeElement.querySelectorAll('[data-type]');
+  items.forEach((item) => {
+    const typeId = item.getAttribute('data-type');
+    if (!typeId) {
+      return;
+    }
+    const valueElement = item.querySelector('strong');
+    if (!valueElement) {
+      return;
+    }
+    const value = counts[typeId] ?? 0;
+    valueElement.textContent = value.toString();
+  });
+}
+
+function setMenuCollapsed(collapsed) {
+  document.body.classList.toggle('menu-collapsed', collapsed);
+  if (menuToggleButton) {
+    menuToggleButton.setAttribute('aria-expanded', (!collapsed).toString());
+  }
+  if (controlPanelElement) {
+    controlPanelElement.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+  }
+}
+
+function syncMenuWithViewport(forceCollapse = false) {
+  if (!responsivePanelQuery) {
+    setMenuCollapsed(false);
+    menuWasToggledManually = false;
+    return;
+  }
+
+  if (!responsivePanelQuery.matches) {
+    setMenuCollapsed(false);
+    menuWasToggledManually = false;
+    return;
+  }
+
+  if (forceCollapse || !menuWasToggledManually) {
+    setMenuCollapsed(true);
   }
 }
 
@@ -897,6 +966,7 @@ function addBlock(placement) {
   mesh.userData = {
     coord: { ...placement.coord },
     orientationIndex: placement.orientationIndex,
+    typeId: currentBlockType.id,
     boundingBox,
   };
   scene.add(mesh);
@@ -1333,6 +1403,41 @@ function buildRotundaModel() {
 
 blockTypeSelect = document.querySelector('#block-type');
 blockCountElement = document.querySelector('#block-count');
+blockCountByTypeElement = document.querySelector('#block-count-by-type');
+controlPanelElement = document.querySelector('#control-panel');
+menuToggleButton = document.querySelector('#menu-toggle');
+menuCloseButton = document.querySelector('#menu-close');
+
+if (menuToggleButton) {
+  menuToggleButton.addEventListener('click', () => {
+    const isCollapsed = document.body.classList.contains('menu-collapsed');
+    setMenuCollapsed(!isCollapsed);
+    menuWasToggledManually = true;
+  });
+}
+
+if (menuCloseButton) {
+  menuCloseButton.addEventListener('click', () => {
+    setMenuCollapsed(true);
+    menuWasToggledManually = true;
+  });
+}
+
+syncMenuWithViewport(true);
+
+if (responsivePanelQuery) {
+  responsivePanelQuery.addEventListener('change', (event) => {
+    if (!event.matches) {
+      setMenuCollapsed(false);
+      menuWasToggledManually = false;
+      return;
+    }
+    if (!menuWasToggledManually) {
+      setMenuCollapsed(true);
+    }
+  });
+}
+
 updateBlockCount();
 
 const initialTypeId = blockTypeSelect ? blockTypeSelect.value : currentBlockType.id;
