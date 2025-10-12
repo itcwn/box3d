@@ -67,6 +67,54 @@ canvas {
   color: var(--color-muted);
 }
 
+.tab-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tab-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button.tab-button {
+  flex: 1 1 120px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-soft);
+  color: var(--color-secondary);
+  box-shadow: none;
+}
+
+button.tab-button:hover,
+button.tab-button:focus-visible {
+  background: #e6ecf7;
+}
+
+button.tab-button.is-active {
+  background: var(--color-secondary);
+  color: #ffffff;
+  border-color: var(--color-secondary);
+  box-shadow: 0 8px 18px rgba(6, 45, 85, 0.25);
+}
+
+.tab-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
 .block-counter {
   display: flex;
   flex-direction: column;

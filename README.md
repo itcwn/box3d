@@ -1,4 +1,4 @@
-# Projektant klocków 6×6×12 cm
+# Kreator Cardblocks
 
 Prosta aplikacja webowa pozwalająca projektować modele z klocków o wymiarach 6 × 6 × 12 cm. Interfejs 3D działa w przeglądarce i bazuje na bibliotece [Three.js](https://threejs.org/).
 
