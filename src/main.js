@@ -1408,6 +1408,67 @@ controlPanelElement = document.querySelector('#control-panel');
 menuToggleButton = document.querySelector('#menu-toggle');
 menuCloseButton = document.querySelector('#menu-close');
 
+const tabButtons = Array.from(document.querySelectorAll('[data-tab-target]'));
+const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
+
+function activateTab(targetId) {
+  if (!targetId) {
+    return;
+  }
+
+  const targetPanel = tabPanels.find((panel) => panel.id === targetId);
+  if (!targetPanel) {
+    return;
+  }
+
+  tabButtons.forEach((button) => {
+    const isActive = button.dataset.tabTarget === targetId;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if (isActive) {
+      button.removeAttribute('tabindex');
+    } else {
+      button.setAttribute('tabindex', '-1');
+    }
+  });
+
+  tabPanels.forEach((panel) => {
+    if (panel.id === targetId) {
+      panel.removeAttribute('hidden');
+    } else {
+      panel.setAttribute('hidden', '');
+    }
+  });
+
+  if (targetId === 'panel-project') {
+    resizeOrientationPreviewRenderer();
+  }
+}
+
+tabButtons.forEach((button, index) => {
+  button.addEventListener('click', () => {
+    activateTab(button.dataset.tabTarget);
+  });
+
+  button.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return;
+    }
+
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const nextIndex = (index + direction + tabButtons.length) % tabButtons.length;
+    const nextButton = tabButtons[nextIndex];
+    activateTab(nextButton.dataset.tabTarget);
+    nextButton.focus();
+  });
+});
+
+const initialTab = tabButtons.find((button) => button.classList.contains('is-active'));
+if (initialTab) {
+  activateTab(initialTab.dataset.tabTarget);
+}
+
 if (menuToggleButton) {
   menuToggleButton.addEventListener('click', () => {
     const isCollapsed = document.body.classList.contains('menu-collapsed');
