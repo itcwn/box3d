@@ -1,8 +1,9 @@
-* {
+.kreator-app,
+.kreator-app * {
   box-sizing: border-box;
 }
 
-:root {
+.kreator-app {
   --color-primary: #c4d114;
   --color-primary-dark: #a9b30f;
   --color-secondary: #062d55;
@@ -12,33 +13,32 @@
   --surface-soft: #f1f4f9;
   --surface-panel: #ffffff;
   --stroke: #c7d3e4;
-}
-
-html,
-body {
-  margin: 0;
+  position: relative;
+  display: block;
+  width: 100%;
   height: 100%;
+  margin: 0;
   overflow: hidden;
   font-family: "Roboto", "Open Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   background: var(--surface-soft);
   color: var(--color-text);
 }
 
-#app {
-  width: 100vw;
-  height: 100vh;
+.kreator-app #app {
+  width: 100%;
+  height: 100%;
 }
 
-canvas {
+.kreator-app canvas {
   display: block;
 }
 
-.ui-panel {
-  position: fixed;
+.kreator-app .ui-panel {
+  position: absolute;
   top: 18px;
   left: 18px;
   max-width: 340px;
-  max-height: calc(100vh - 36px);
+  max-height: calc(100% - 36px);
   padding: 20px 22px 24px;
   border-radius: 10px;
   background: var(--surface-panel);
@@ -52,7 +52,7 @@ canvas {
   overflow-y: auto;
 }
 
-.ui-panel h1 {
+.kreator-app .ui-panel h1 {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
@@ -60,26 +60,26 @@ canvas {
   letter-spacing: 0.01em;
 }
 
-.ui-panel p {
+.kreator-app .ui-panel p {
   margin: 0;
   line-height: 1.55;
   font-size: 0.92rem;
   color: var(--color-muted);
 }
 
-.tab-group {
+.kreator-app .tab-group {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.tab-navigation {
+.kreator-app .tab-navigation {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-button.tab-button {
+.kreator-app button.tab-button {
   flex: 1 1 120px;
   border: 1px solid var(--stroke);
   background: var(--surface-soft);
@@ -87,35 +87,35 @@ button.tab-button {
   box-shadow: none;
 }
 
-button.tab-button:hover,
-button.tab-button:focus-visible {
+.kreator-app button.tab-button:hover,
+.kreator-app button.tab-button:focus-visible {
   background: #e6ecf7;
 }
 
-button.tab-button.is-active {
+.kreator-app button.tab-button.is-active {
   background: var(--color-secondary);
   color: #ffffff;
   border-color: var(--color-secondary);
   box-shadow: 0 8px 18px rgba(6, 45, 85, 0.25);
 }
 
-.tab-panels {
+.kreator-app .tab-panels {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.tab-panel {
+.kreator-app .tab-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.tab-panel[hidden] {
+.kreator-app .tab-panel[hidden] {
   display: none;
 }
 
-.block-counter {
+.kreator-app .block-counter {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -125,14 +125,14 @@ button.tab-button.is-active {
   background: #f7f9fd;
 }
 
-.block-counter-total {
+.kreator-app .block-counter-total {
   margin: 0;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--color-secondary);
 }
 
-.block-counter-list {
+.kreator-app .block-counter-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -141,7 +141,7 @@ button.tab-button.is-active {
   gap: 6px;
 }
 
-.block-counter-list li {
+.kreator-app .block-counter-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -149,13 +149,13 @@ button.tab-button.is-active {
   color: var(--color-muted);
 }
 
-.block-counter-list strong {
+.kreator-app .block-counter-list strong {
   font-size: 0.9rem;
   color: var(--color-secondary);
 }
 
-.menu-toggle {
-  position: fixed;
+.kreator-app .menu-toggle {
+  position: absolute;
   top: 18px;
   left: 18px;
   z-index: 12;
@@ -166,19 +166,33 @@ button.tab-button.is-active {
   border-radius: 999px;
 }
 
-.menu-close {
+.kreator-app.menu-collapsed .menu-toggle {
+  display: inline-flex;
+}
+
+.kreator-app.menu-collapsed .ui-panel {
+  transform: translateX(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.kreator-app.menu-collapsed .ui-panel:focus-within {
+  pointer-events: auto;
+}
+
+.kreator-app .menu-close {
   display: none;
   align-self: flex-end;
   margin-bottom: 8px;
 }
 
-.controls {
+.kreator-app .controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.orientation-controls {
+.kreator-app .orientation-controls {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -188,23 +202,23 @@ button.tab-button.is-active {
   background: #f7f9fd;
 }
 
-.orientation-status {
+.kreator-app .orientation-status {
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--color-secondary);
 }
 
-.orientation-buttons {
+.kreator-app .orientation-buttons {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.orientation-buttons button {
+.kreator-app .orientation-buttons button {
   flex: 1 1 140px;
 }
 
-.orientation-preview {
+.kreator-app .orientation-preview {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -214,24 +228,24 @@ button.tab-button.is-active {
   background: #f7f9fd;
 }
 
-.orientation-preview-info {
+.kreator-app .orientation-preview-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.orientation-preview-title {
+.kreator-app .orientation-preview-title {
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--color-secondary);
 }
 
-.orientation-preview-details {
+.kreator-app .orientation-preview-details {
   font-size: 0.82rem;
   color: var(--color-muted);
 }
 
-.orientation-preview-canvas {
+.kreator-app .orientation-preview-canvas {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -244,23 +258,23 @@ button.tab-button.is-active {
   justify-content: center;
 }
 
-.orientation-preview-canvas canvas {
+.kreator-app .orientation-preview-canvas canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-.view-controls {
+.kreator-app .view-controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.view-controls button {
+.kreator-app .view-controls button {
   flex: 1 1 140px;
 }
 
-button {
+.kreator-app button {
   padding: 10px 18px;
   border-radius: 6px;
   border: none;
@@ -273,37 +287,37 @@ button {
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-button:hover {
+.kreator-app button:hover {
   background: var(--color-primary-dark);
   box-shadow: 0 8px 18px rgba(6, 45, 85, 0.25);
 }
 
-button:active {
+.kreator-app button:active {
   box-shadow: 0 2px 6px rgba(6, 45, 85, 0.2);
 }
 
-button:disabled {
+.kreator-app button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-button:disabled:hover {
+.kreator-app button:disabled:hover {
   background: var(--color-primary);
   box-shadow: none;
 }
 
-button.secondary {
+.kreator-app button.secondary {
   background: var(--color-secondary);
   color: #ffffff;
 }
 
-button.secondary:hover {
+.kreator-app button.secondary:hover {
   background: var(--color-secondary-light);
   box-shadow: 0 8px 18px rgba(6, 45, 85, 0.35);
 }
 
-textarea {
+.kreator-app textarea {
   width: 100%;
   min-height: 140px;
   resize: vertical;
@@ -317,7 +331,7 @@ textarea {
   font-size: 0.82rem;
 }
 
-fieldset {
+.kreator-app fieldset {
   border: 1px solid var(--stroke);
   border-radius: 8px;
   padding: 14px;
@@ -327,14 +341,14 @@ fieldset {
   background: var(--surface-panel);
 }
 
-legend {
+.kreator-app legend {
   font-size: 0.9rem;
   font-weight: 600;
   padding: 0 8px;
   color: var(--color-secondary);
 }
 
-label {
+.kreator-app label {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -342,7 +356,7 @@ label {
   color: var(--color-text);
 }
 
-select {
+.kreator-app select {
   padding: 9px 12px;
   border-radius: 6px;
   border: 1px solid var(--stroke);
@@ -351,16 +365,16 @@ select {
   color: var(--color-secondary);
 }
 
-input[type='file'] {
+.kreator-app input[type='file'] {
   font-size: 0.82rem;
 }
 
-input[type='range'] {
+.kreator-app input[type='range'] {
   width: 100%;
   accent-color: var(--color-primary);
 }
 
-input[type='color'] {
+.kreator-app input[type='color'] {
   width: 100%;
   height: 32px;
   padding: 0;
@@ -370,32 +384,33 @@ input[type='color'] {
   cursor: pointer;
 }
 
-.hint {
+.kreator-app .hint {
   margin: 0;
   font-size: 0.78rem;
   color: var(--color-muted);
 }
 
-summary {
+.kreator-app summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--color-secondary);
 }
 
 @media (max-width: 768px) {
-  .menu-toggle {
+  .kreator-app .menu-toggle {
+    position: fixed;
     display: inline-flex;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
 
-  body.menu-collapsed .menu-toggle {
+  .kreator-app.menu-collapsed .menu-toggle {
     opacity: 1;
     pointer-events: auto;
   }
 
-  .ui-panel {
+  .kreator-app .ui-panel {
     position: fixed;
     inset: 0;
     width: 100vw;
@@ -414,14 +429,14 @@ summary {
     z-index: 11;
   }
 
-  .menu-close {
+  .kreator-app .menu-close {
     display: inline-flex;
     position: absolute;
     top: 18px;
     right: 18px;
   }
 
-  body.menu-collapsed .ui-panel {
+  .kreator-app.menu-collapsed .ui-panel {
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;

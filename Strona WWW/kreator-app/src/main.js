@@ -6,6 +6,20 @@ const GRID_LIMIT = 10; // how many blocks allowed from center on X/Z
 const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
 
 const container = document.querySelector('#app');
+const appRoot = container ? container.closest('.kreator-app') : null;
+
+if (!container || !appRoot) {
+  throw new Error('Kreator: nie znaleziono elementu kontenera aplikacji.');
+}
+
+function getRendererSize() {
+  const width = Math.max(container.clientWidth || 0, 320);
+  const height = Math.max(container.clientHeight || 0, 320);
+  if (width === 0 || height === 0) {
+    return { width: Math.max(window.innerWidth, 320), height: Math.max(window.innerHeight, 320) };
+  }
+  return { width, height };
+}
 
 const defaultBackgroundColor = '#f3f5fa';
 
@@ -15,14 +29,16 @@ scene.background = new THREE.Color(defaultBackgroundColor);
 const defaultCameraPosition = new THREE.Vector3(90, 110, 120);
 const defaultCameraTarget = new THREE.Vector3(0, blockSize.y / 2, 0);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+const { width: initialWidth, height: initialHeight } = getRendererSize();
+
+const camera = new THREE.PerspectiveCamera(50, initialWidth / initialHeight, 0.1, 1000);
 camera.position.copy(defaultCameraPosition);
 camera.lookAt(defaultCameraTarget);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(initialWidth, initialHeight);
 container.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -198,6 +214,13 @@ const topBottomMaterials = [materials.top, materials.bottom];
 
 let currentSidesTexture = defaultSidesTexture;
 let currentTopBottomTexture = defaultTopBottomTexture;
+
+function resizeRenderer() {
+  const { width, height } = getRendererSize();
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
 let currentBackgroundTexture = null;
 
 const ROTUNDA_ORIENTATION_CONFIGS = [
@@ -627,13 +650,14 @@ function updateBlockCount() {
 }
 
 function setMenuCollapsed(collapsed) {
-  document.body.classList.toggle('menu-collapsed', collapsed);
+  appRoot.classList.toggle('menu-collapsed', collapsed);
   if (menuToggleButton) {
     menuToggleButton.setAttribute('aria-expanded', (!collapsed).toString());
   }
   if (controlPanelElement) {
     controlPanelElement.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
   }
+  resizeRenderer();
 }
 
 function syncMenuWithViewport(forceCollapse = false) {
@@ -1221,9 +1245,7 @@ async function handleBackgroundImageChange(event) {
 }
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  resizeRenderer();
   resizeOrientationPreviewRenderer();
 });
 
@@ -1238,6 +1260,7 @@ const resetViewButton = document.querySelector('#reset-view');
 const toggleGridButton = document.querySelector('#toggle-grid');
 
 initOrientationPreview();
+resizeRenderer();
 
 if (rotatePrevButton) {
   rotatePrevButton.addEventListener('click', () => {
@@ -1471,7 +1494,7 @@ if (initialTab) {
 
 if (menuToggleButton) {
   menuToggleButton.addEventListener('click', () => {
-    const isCollapsed = document.body.classList.contains('menu-collapsed');
+    const isCollapsed = appRoot.classList.contains('menu-collapsed');
     setMenuCollapsed(!isCollapsed);
     menuWasToggledManually = true;
   });
