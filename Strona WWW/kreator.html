@@ -152,6 +152,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                     <div class="col-md-12">
                         <div class="kreator-frame-wrapper" aria-label="Kreator klocków CARDBLOCKS">
+                            <button type="button" class="kreator-fullscreen-toggle" aria-pressed="false">
+                                Pełny ekran
+                            </button>
                             <iframe
                                 src="../index.html"
                                 title="Kreator klocków CARDBLOCKS"
@@ -246,9 +249,46 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <script src="js/magnific.popup.js"></script>
     <script src="js/----wow.min.js"></script>
     <script src="js/script.js"></script>
-    <script src="js/lightbox.min.js"></script> 
+    <script src="js/lightbox.min.js"></script>
 
     <!-- js library end -->
+
+    <script>
+        (function () {
+            var toggleBtn = document.querySelector('.kreator-fullscreen-toggle');
+            if (!toggleBtn) {
+                return;
+            }
+
+            var body = document.body;
+            var header = document.querySelector('.main-header');
+
+            function setHeaderHeight() {
+                if (!body.classList.contains('kreator-fullscreen-active')) {
+                    body.style.removeProperty('--kreator-header-height');
+                    return;
+                }
+
+                var headerHeight = header ? header.offsetHeight : 0;
+                body.style.setProperty('--kreator-header-height', headerHeight + 'px');
+            }
+
+            function updateState() {
+                var isActive = body.classList.contains('kreator-fullscreen-active');
+                toggleBtn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                toggleBtn.textContent = isActive ? 'Zamknij pełny ekran' : 'Pełny ekran';
+                setHeaderHeight();
+            }
+
+            toggleBtn.addEventListener('click', function () {
+                body.classList.toggle('kreator-fullscreen-active');
+                updateState();
+            });
+
+            window.addEventListener('resize', setHeaderHeight);
+            updateState();
+        })();
+    </script>
 
 </body>
 
