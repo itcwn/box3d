@@ -101,6 +101,11 @@ body.kreator-fullscreen-active
   box-shadow: none;
 }
 
+.kreator-app .tab-navigation .tab-button {
+  font-size: 1rem;
+  padding: 12px 20px;
+}
+
 .kreator-app button.tab-button:hover,
 .kreator-app button.tab-button:focus-visible {
   background: #e6ecf7;
