@@ -3,6 +3,20 @@
   box-sizing: border-box;
 }
 
+.kreator-frame-wrapper > .kreator-frame.kreator-app {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.kreator-fullscreen-active
+  .kreator-frame-wrapper
+  > .kreator-frame.kreator-app {
+  position: static;
+  inset: auto;
+}
+
 .kreator-app {
   --color-primary: #c4d114;
   --color-primary-dark: #a9b30f;
