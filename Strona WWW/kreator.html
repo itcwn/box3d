@@ -39,6 +39,21 @@
 <link rel="stylesheet" type="text/css" href="css/style-ws.css">
 <link rel="stylesheet" type="text/css" href="css/lightbox.css">
 <link rel="stylesheet" type="text/css" href="css/kreator.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+    href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+>
+<link rel="stylesheet" href="kreator-app/styles.css">
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.156.1/build/three.module.js",
+            "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.156.1/examples/jsm/controls/OrbitControls.js"
+        }
+    }
+</script>
 
 <link href='https://fonts.googleapis.com/css?family=Roboto:100,200,300,400,500,600,600italic,700,700italic,800' rel='stylesheet' type='text/css'>
 
@@ -155,19 +170,238 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             <button type="button" class="kreator-fullscreen-toggle" aria-pressed="false">
                                 Pełny ekran
                             </button>
-                            <iframe
-                                src="../index.html"
-                                title="Kreator klocków CARDBLOCKS"
-                                loading="lazy"
-                                class="kreator-frame"
-                                allowfullscreen
-                                referrerpolicy="no-referrer-when-downgrade"
-                            ></iframe>
+                            <div class="kreator-frame kreator-app">
+                                <div id="app" aria-label="Scena 3D kreatora"></div>
+                                <button
+                                    type="button"
+                                    id="menu-toggle"
+                                    class="menu-toggle secondary"
+                                    aria-expanded="true"
+                                    aria-controls="control-panel"
+                                >
+                                    ☰ Menu
+                                </button>
+                                <aside id="control-panel" class="ui-panel" aria-label="Panel sterowania">
+                                    <button type="button" id="menu-close" class="menu-close secondary" aria-label="Zamknij panel">
+                                        ✕ Zamknij
+                                    </button>
+                                    <h1>Kreator Cardblocks</h1>
+                                    <div class="tab-group" data-tabs>
+                                        <div class="tab-navigation" role="tablist" aria-label="Sekcje kreatora">
+                                            <button
+                                                type="button"
+                                                class="tab-button is-active"
+                                                role="tab"
+                                                id="tab-project"
+                                                aria-selected="true"
+                                                aria-controls="panel-project"
+                                                data-tab-target="panel-project"
+                                            >
+                                                Projekt
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="tab-button"
+                                                role="tab"
+                                                id="tab-texture"
+                                                aria-selected="false"
+                                                aria-controls="panel-texture"
+                                                data-tab-target="panel-texture"
+                                                tabindex="-1"
+                                            >
+                                                Tekstura klocka
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="tab-button"
+                                                role="tab"
+                                                id="tab-lighting"
+                                                aria-selected="false"
+                                                aria-controls="panel-lighting"
+                                                data-tab-target="panel-lighting"
+                                                tabindex="-1"
+                                            >
+                                                Oświetlenie
+                                            </button>
+                                        </div>
+                                        <div class="tab-panels">
+                                            <section
+                                                id="panel-project"
+                                                class="tab-panel"
+                                                role="tabpanel"
+                                                aria-labelledby="tab-project"
+                                                data-tab-panel
+                                            >
+                                                <p>
+                                                    Lewy przycisk myszy lub dotknięcie – dodawanie klocka w podświetlonym miejscu.<br />
+                                                    <kbd>Shift</kbd> + kliknięcie – usuwanie wskazanego klocka.<br />
+                                                    Przyciski obracania lub <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót klocka o 90°.<br />
+                                                    Rolka myszy/gesty – przybliżenie, obrót widoku wykonujemy przeciągając myszą.
+                                                </p>
+                                                <section class="block-counter" aria-live="polite">
+                                                    <p class="block-counter-total">
+                                                        Liczba klocków: <strong id="block-count">0</strong>
+                                                    </p>
+                                                    <ul id="block-count-by-type" class="block-counter-list">
+                                                        <li data-type="standard">
+                                                            <span>Klocek 6×6×12 cm</span>
+                                                            <strong>0</strong>
+                                                        </li>
+                                                        <li data-type="connector">
+                                                            <span>Łącznik 6×6×6 cm</span>
+                                                            <strong>0</strong>
+                                                        </li>
+                                                        <li data-type="rotunda">
+                                                            <span>Element rotundy 18 cm</span>
+                                                            <strong>0</strong>
+                                                        </li>
+                                                    </ul>
+                                                </section>
+                                                <label for="block-type">
+                                                    Model klocka
+                                                    <select id="block-type">
+                                                        <option value="standard">Klocek 6×6×12 cm</option>
+                                                        <option value="connector">Łącznik 6×6×6 cm</option>
+                                                        <option value="rotunda">Element rotundy 18 cm</option>
+                                                    </select>
+                                                </label>
+                                                <section class="orientation-controls" aria-label="Sterowanie orientacją klocka">
+                                                    <div class="orientation-status">
+                                                        Orientacja: <strong id="orientation-indicator">—</strong>
+                                                    </div>
+                                                    <div class="orientation-buttons">
+                                                        <button type="button" id="rotate-prev" class="secondary" aria-label="Obróć w lewo">
+                                                            ↺ Obróć
+                                                        </button>
+                                                        <button type="button" id="rotate-next" class="secondary" aria-label="Obróć w prawo">
+                                                            Obróć ↻
+                                                        </button>
+                                                    </div>
+                                                </section>
+                                                <section class="orientation-preview" aria-label="Podgląd klocka">
+                                                    <div class="orientation-preview-info">
+                                                        <span class="orientation-preview-title">Podgląd klocka</span>
+                                                        <span id="orientation-preview-details" class="orientation-preview-details">—</span>
+                                                    </div>
+                                                    <div
+                                                        id="orientation-preview"
+                                                        class="orientation-preview-canvas"
+                                                        role="img"
+                                                        aria-label="Podgląd 3D wybranego klocka"
+                                                    ></div>
+                                                </section>
+                                                <div class="view-controls" aria-label="Sterowanie widokiem">
+                                                    <button
+                                                        type="button"
+                                                        id="reset-view"
+                                                        class="secondary"
+                                                        aria-label="Przywróć domyślną skalę i pozycję kamery"
+                                                    >
+                                                        🔍 Domyślny widok
+                                                    </button>
+                                                    <button type="button" id="toggle-grid" class="secondary" aria-pressed="true">Ukryj siatkę</button>
+                                                </div>
+                                                <div class="controls">
+                                                    <button id="reset">Wyczyść scenę</button>
+                                                    <button id="export">Eksportuj układ</button>
+                                                </div>
+                                                <fieldset>
+                                                    <legend>Tło widoku</legend>
+                                                    <label for="background-color">
+                                                        Kolor tła
+                                                        <input id="background-color" type="color" value="#f3f5fa" />
+                                                    </label>
+                                                    <label for="background-image">
+                                                        Obraz tła
+                                                        <input id="background-image" type="file" accept="image/*" />
+                                                    </label>
+                                                    <button type="button" id="reset-background" class="secondary">Przywróć domyślne tło</button>
+                                                    <p class="hint">Wyczyść plik, aby użyć wybranego koloru.</p>
+                                                </fieldset>
+                                                <details>
+                                                    <summary>Jak to działa?</summary>
+                                                    <p>
+                                                        Każdy klocek ma wymiary 6&nbsp;×&nbsp;6&nbsp;×&nbsp;12&nbsp;cm i musi stykać się z innym klockiem lub podstawą.
+                                                        Podgląd koloru zielonego oznacza, że klocek można ustawić, czerwony – pozycja jest niedostępna.
+                                                        Eksport generuje listę współrzędnych, które można zapisać w notatniku.
+                                                    </p>
+                                                </details>
+                                                <textarea id="export-output" readonly placeholder="Tutaj pojawi się eksport projektu"></textarea>
+                                            </section>
+                                            <section
+                                                id="panel-texture"
+                                                class="tab-panel"
+                                                role="tabpanel"
+                                                aria-labelledby="tab-texture"
+                                                data-tab-panel
+                                                hidden
+                                            >
+                                                <fieldset>
+                                                    <legend>Tekstury klocka</legend>
+                                                    <p class="hint">Dostosuj wygląd klocków, wczytując własne obrazy.</p>
+                                                    <label for="texture-top-bottom">
+                                                        Góra / dół
+                                                        <input id="texture-top-bottom" type="file" accept="image/*" />
+                                                    </label>
+                                                    <label for="texture-sides">
+                                                        Ściany
+                                                        <input id="texture-sides" type="file" accept="image/*" />
+                                                    </label>
+                                                    <button type="button" id="reset-textures" class="secondary">Przywróć domyślne tekstury</button>
+                                                    <p class="hint">Pozostaw pola puste, aby użyć domyślnego wzoru.</p>
+                                                </fieldset>
+                                            </section>
+                                            <section
+                                                id="panel-lighting"
+                                                class="tab-panel"
+                                                role="tabpanel"
+                                                aria-labelledby="tab-lighting"
+                                                data-tab-panel
+                                                hidden
+                                            >
+                                                <fieldset>
+                                                    <legend>Oświetlenie sceny</legend>
+                                                    <p class="hint">Kontroluj charakter oświetlenia, aby dopasować nastrój projektu.</p>
+                                                    <label for="ambient-intensity">
+                                                        Natężenie światła otoczenia
+                                                        <input id="ambient-intensity" type="range" min="0" max="3" step="0.05" value="0.4" />
+                                                    </label>
+                                                    <label for="ambient-color">
+                                                        Kolor światła otoczenia
+                                                        <input id="ambient-color" type="color" value="#ffffff" />
+                                                    </label>
+                                                    <label for="directional-intensity">
+                                                        Natężenie światła kierunkowego
+                                                        <input id="directional-intensity" type="range" min="0" max="4" step="0.05" value="0.8" />
+                                                    </label>
+                                                    <label for="directional-color">
+                                                        Kolor światła kierunkowego
+                                                        <input id="directional-color" type="color" value="#ffffff" />
+                                                    </label>
+                                                    <label for="directional-azimuth">
+                                                        Kierunek (azymut)
+                                                        <input id="directional-azimuth" type="range" min="0" max="360" step="1" value="56" />
+                                                    </label>
+                                                    <label for="directional-elevation">
+                                                        Wysokość (elewacja)
+                                                        <input id="directional-elevation" type="range" min="-10" max="89" step="1" value="48" />
+                                                    </label>
+                                                    <label for="directional-distance">
+                                                        Odległość światła
+                                                        <input id="directional-distance" type="range" min="40" max="400" step="5" value="160" />
+                                                    </label>
+                                                    <button type="button" id="reset-lighting" class="secondary">Przywróć domyślne oświetlenie</button>
+                                                </fieldset>
+                                            </section>
+                                        </div>
+                                    </div>
+                                </aside>
+                            </div>
                             <noscript>
                                 <p class="kreator-noscript">Aby korzystać z kreatora klocków CARDBLOCKS włącz obsługę JavaScript w przeglądarce.</p>
                             </noscript>
                             <p class="kreator-fallback">
-                                Jeśli kreator nie załaduje się automatycznie, <a href="../index.html" target="_blank" rel="noopener">otwórz go w osobnym oknie</a>.
+                                Jeśli kreator nie załaduje się automatycznie, odśwież stronę lub skontaktuj się z nami.
                             </p>
                         </div>
                     </div>
@@ -253,6 +487,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <!-- js library end -->
 
+    <script type="module" src="kreator-app/src/main.js"></script>
+
     <script>
         (function () {
             var toggleBtn = document.querySelector('.kreator-fullscreen-toggle');
@@ -283,6 +519,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             toggleBtn.addEventListener('click', function () {
                 body.classList.toggle('kreator-fullscreen-active');
                 updateState();
+                window.dispatchEvent(new Event('resize'));
             });
 
             window.addEventListener('resize', setHeaderHeight);
