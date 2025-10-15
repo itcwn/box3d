@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-let blockSize = { x: 6, y: 12, z: 6 }; // cm units
+const gridUnit = { x: 6, y: 12, z: 6 }; // cm units per grid cell
+let currentBlockSize = { ...gridUnit };
 const GRID_LIMIT = 10; // how many blocks allowed from center on X/Z
 const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
 
@@ -27,7 +28,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(defaultBackgroundColor);
 
 const defaultCameraPosition = new THREE.Vector3(90, 110, 120);
-const defaultCameraTarget = new THREE.Vector3(0, blockSize.y / 2, 0);
+const defaultCameraTarget = new THREE.Vector3(0, currentBlockSize.y / 2, 0);
 
 const { width: initialWidth, height: initialHeight } = getRendererSize();
 
@@ -62,14 +63,14 @@ dirLight.shadow.camera.right = 160;
 dirLight.shadow.camera.top = 160;
 dirLight.shadow.camera.bottom = -160;
 scene.add(dirLight);
-dirLight.target.position.set(0, blockSize.y / 2, 0);
+dirLight.target.position.set(0, currentBlockSize.y / 2, 0);
 scene.add(dirLight.target);
 
 const gridSize = GRID_LIMIT * 2 + 1;
-const gridHelper = new THREE.GridHelper(gridSize * blockSize.x, gridSize, '#8cc63f', '#8cc63f');
+const gridHelper = new THREE.GridHelper(gridSize * gridUnit.x, gridSize, '#8cc63f', '#8cc63f');
 scene.add(gridHelper);
 
-const groundGeometry = new THREE.PlaneGeometry(gridSize * blockSize.x, gridSize * blockSize.z);
+const groundGeometry = new THREE.PlaneGeometry(gridSize * gridUnit.x, gridSize * gridUnit.z);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: '#e5f3d8',
   metalness: 0,
@@ -84,7 +85,7 @@ ground.receiveShadow = true;
 ground.name = 'ground';
 scene.add(ground);
 
-let blockGeometry = new THREE.BoxGeometry(blockSize.x, blockSize.y, blockSize.z);
+let blockGeometry = new THREE.BoxGeometry(currentBlockSize.x, currentBlockSize.y, currentBlockSize.z);
 const geometryCache = new Map([['standard', blockGeometry]]);
 
 const textureLoader = new THREE.TextureLoader();
@@ -346,8 +347,8 @@ function loadTextureFromFile(file) {
 function createOrientationDefinition({ name, rotation, size, gridStep }) {
   const normalizedSize = { x: size.x, y: size.y, z: size.z };
   const defaultGridStep = {
-    x: normalizedSize.x !== 0 ? blockSize.x / normalizedSize.x : 1,
-    z: normalizedSize.z !== 0 ? blockSize.z / normalizedSize.z : 1,
+    x: normalizedSize.x !== 0 ? gridUnit.x / normalizedSize.x : 1,
+    z: normalizedSize.z !== 0 ? gridUnit.z / normalizedSize.z : 1,
   };
   return {
     name,
@@ -366,7 +367,7 @@ function getGridStep(orientation, axis) {
     return value;
   }
   const size = axis === 'x' ? orientation.size.x : orientation.size.z;
-  return size !== 0 ? blockSize[axis] / size : 1;
+  return size !== 0 ? gridUnit[axis] / size : 1;
 }
 
 function createBoxOrientations(size) {
@@ -564,7 +565,7 @@ const BLOCK_TYPES = {
 
 let currentBlockType = BLOCK_TYPES.standard;
 let currentBlockMaterials = blockMaterials;
-let orientations = createBoxOrientations(blockSize);
+let orientations = createBoxOrientations(currentBlockSize);
 
 const EPSILON = 1e-3;
 
@@ -797,10 +798,10 @@ function setBlockType(typeId, options = {}) {
     return;
   }
 
-  blockSize = { ...nextType.size };
+  currentBlockSize = { ...nextType.size };
   blockGeometry = getGeometryForType(nextType);
   currentBlockMaterials = nextType.createMaterials();
-  orientations = nextType.createOrientations(blockSize);
+  orientations = nextType.createOrientations(currentBlockSize);
   currentBlockType = nextType;
   currentOrientationIndex = 0;
 
@@ -813,8 +814,8 @@ function setBlockType(typeId, options = {}) {
     blockTypeSelect.value = nextType.id;
   }
 
-  controls.target.set(0, blockSize.y / 2, 0);
-  dirLight.target.position.set(0, blockSize.y / 2, 0);
+  controls.target.set(0, currentBlockSize.y / 2, 0);
+  dirLight.target.position.set(0, currentBlockSize.y / 2, 0);
   dirLight.target.updateMatrixWorld();
   updateDirectionalLightPosition();
 
@@ -861,9 +862,9 @@ function getOrientation(index) {
 
 function toPosition(coord, orientation) {
   return new THREE.Vector3(
-    coord.x * blockSize.x,
-    coord.y * blockSize.y + orientation.size.y / 2,
-    coord.z * blockSize.z
+    coord.x * gridUnit.x,
+    coord.y * gridUnit.y + orientation.size.y / 2,
+    coord.z * gridUnit.z
   );
 }
 
@@ -877,9 +878,9 @@ function getBoundingBox(coord, orientation) {
 
 function coordFromCenter(center, orientation) {
   return {
-    x: roundCoordValue(snapAxis(center.x, blockSize.x, getGridStep(orientation, 'x'))),
-    y: roundCoordValue((center.y - orientation.size.y / 2) / blockSize.y),
-    z: roundCoordValue(snapAxis(center.z, blockSize.z, getGridStep(orientation, 'z'))),
+    x: roundCoordValue(snapAxis(center.x, gridUnit.x, getGridStep(orientation, 'x'))),
+    y: roundCoordValue((center.y - orientation.size.y / 2) / gridUnit.y),
+    z: roundCoordValue(snapAxis(center.z, gridUnit.z, getGridStep(orientation, 'z'))),
   };
 }
 
@@ -919,13 +920,13 @@ function horizontalSupportOverlap(boxA, boxB) {
 function isInsideBounds(coord, orientation) {
   const halfX = orientation.size.x / 2;
   const halfZ = orientation.size.z / 2;
-  const posX = coord.x * blockSize.x;
-  const posZ = coord.z * blockSize.z;
+  const posX = coord.x * gridUnit.x;
+  const posZ = coord.z * gridUnit.z;
 
-  const withinX = posX + halfX <= GRID_LIMIT * blockSize.x && posX - halfX >= -GRID_LIMIT * blockSize.x;
-  const withinZ = posZ + halfZ <= GRID_LIMIT * blockSize.z && posZ - halfZ >= -GRID_LIMIT * blockSize.z;
-  const topY = coord.y * blockSize.y + orientation.size.y;
-  const withinY = coord.y >= 0 && topY <= (HEIGHT_LIMIT + 1) * blockSize.y;
+  const withinX = posX + halfX <= GRID_LIMIT * gridUnit.x && posX - halfX >= -GRID_LIMIT * gridUnit.x;
+  const withinZ = posZ + halfZ <= GRID_LIMIT * gridUnit.z && posZ - halfZ >= -GRID_LIMIT * gridUnit.z;
+  const topY = coord.y * gridUnit.y + orientation.size.y;
+  const withinY = coord.y >= 0 && topY <= (HEIGHT_LIMIT + 1) * gridUnit.y;
 
   return withinX && withinZ && withinY;
 }
@@ -1023,9 +1024,9 @@ function getPlacementFromIntersection(intersection) {
     const point = intersection.point;
     const orientation = getOrientation(currentOrientationIndex);
     const coord = {
-      x: roundCoordValue(snapAxis(point.x, blockSize.x, getGridStep(orientation, 'x'))),
+      x: roundCoordValue(snapAxis(point.x, gridUnit.x, getGridStep(orientation, 'x'))),
       y: 0,
-      z: roundCoordValue(snapAxis(point.z, blockSize.z, getGridStep(orientation, 'z'))),
+      z: roundCoordValue(snapAxis(point.z, gridUnit.z, getGridStep(orientation, 'z'))),
     };
     return {
       coord,
@@ -1060,8 +1061,8 @@ function getPlacementFromIntersection(intersection) {
     const coord = coordFromCenter(baseCenter.add(offset), orientation);
 
     if (snappedNormal.y !== 0) {
-      coord.x = roundCoordValue(snapAxis(intersection.point.x, blockSize.x, getGridStep(orientation, 'x')));
-      coord.z = roundCoordValue(snapAxis(intersection.point.z, blockSize.z, getGridStep(orientation, 'z')));
+      coord.x = roundCoordValue(snapAxis(intersection.point.x, gridUnit.x, getGridStep(orientation, 'x')));
+      coord.z = roundCoordValue(snapAxis(intersection.point.z, gridUnit.z, getGridStep(orientation, 'z')));
     }
 
     if (coord.y < 0) {
@@ -1149,7 +1150,7 @@ function exportLayout() {
 
   const payload = {
     unit: 'cm',
-    blockSize: blockSize,
+    blockSize: currentBlockSize,
     count: entries.length,
     coordinates: entries.map((item) => ({
       ...item.coord,
