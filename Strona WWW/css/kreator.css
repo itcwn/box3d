@@ -38,6 +38,46 @@
     background: transparent;
 }
 
+.kreator-fullscreen-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
+    padding: 10px 20px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(6, 45, 85, 0.92);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 16px 32px rgba(6, 45, 85, 0.32);
+}
+
+.kreator-fullscreen-toggle:hover {
+    background: #0a5db3;
+    box-shadow: 0 20px 36px rgba(6, 45, 85, 0.38);
+    transform: translateY(-1px);
+}
+
+.kreator-fullscreen-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(10, 93, 179, 0.35);
+}
+
+body.kreator-fullscreen-active .kreator-fullscreen-toggle {
+    background: rgba(255, 255, 255, 0.88);
+    color: #062d55;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+}
+
+body.kreator-fullscreen-active .kreator-fullscreen-toggle:hover {
+    background: #ffffff;
+}
+
 .kreator-noscript {
     margin: 0;
     padding: 24px;
@@ -115,4 +155,72 @@
         font-size: 16px;
         padding: 0 10px;
     }
+}
+
+body.kreator-fullscreen-active {
+    overflow: hidden;
+    background: #040810;
+}
+
+body.kreator-fullscreen-active .main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+body.kreator-fullscreen-active .amplebiz-breadcrumb,
+body.kreator-fullscreen-active .kreator-page-inner .contact-page-title,
+body.kreator-fullscreen-active .kreator-page-inner .kreator-seo-text,
+body.kreator-fullscreen-active footer,
+body.kreator-fullscreen-active .footer-bottom,
+body.kreator-fullscreen-active .scroll-top {
+    display: none !important;
+}
+
+body.kreator-fullscreen-active .contact-page {
+    padding-top: calc(var(--kreator-header-height, 0px));
+    padding-bottom: 0;
+    background: #040810;
+}
+
+body.kreator-fullscreen-active .contact-page .container {
+    width: 100%;
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.kreator-fullscreen-active .contact-page .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+body.kreator-fullscreen-active .contact-page [class*="col-"] {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.kreator-fullscreen-active .kreator-page-inner {
+    padding: 0;
+}
+
+body.kreator-fullscreen-active .kreator-frame-wrapper {
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: 0;
+    height: calc(100vh - var(--kreator-header-height, 0px));
+    background: #040810;
+}
+
+body.kreator-fullscreen-active .kreator-frame {
+    position: static;
+    height: 100%;
+}
+
+body.kreator-fullscreen-active .kreator-fallback,
+body.kreator-fullscreen-active .kreator-noscript {
+    display: none !important;
 }
