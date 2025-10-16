@@ -260,13 +260,7 @@ const rotundaInnerMaterial = new THREE.MeshStandardMaterial({
 
 const rotundaMaterials = [materials.top, materials.bottom, rotundaOuterMaterial, rotundaInnerMaterial];
 
-const sideMaterials = [
-  materials.right,
-  materials.left,
-  materials.front,
-  materials.back,
-  rotundaOuterMaterial,
-];
+const sideMaterials = [materials.right, materials.left, materials.front, materials.back];
 const topBottomMaterials = [materials.top, materials.bottom];
 
 let currentSidesTexture = defaultSidesTexture;
@@ -332,6 +326,11 @@ function updateMaterialsMap(targetMaterials, texture) {
     material.map = texture;
     material.needsUpdate = true;
   });
+}
+
+function resetRotundaOuterMaterial() {
+  rotundaOuterMaterial.map = rotundaOuterTexture;
+  rotundaOuterMaterial.needsUpdate = true;
 }
 
 function disposeBackgroundTexture(texture) {
@@ -949,6 +948,9 @@ function setBlockType(typeId, options = {}) {
   currentBlockSize = { ...nextType.size };
   blockGeometry = getGeometryForType(nextType);
   currentBlockMaterials = nextType.createMaterials();
+  if (nextType.id === BLOCK_TYPES.rotunda.id) {
+    resetRotundaOuterMaterial();
+  }
   orientations = nextType.createOrientations(currentBlockSize);
   currentBlockType = nextType;
   currentOrientationIndex = 0;
