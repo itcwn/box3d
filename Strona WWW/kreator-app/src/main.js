@@ -94,6 +94,39 @@ function applyTextureSettings(texture, { repeat = false } = {}) {
   if (repeat) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+
+    let repeatX = 1;
+    let repeatY = 1;
+
+    if (repeat === true) {
+      repeatX = 1;
+      repeatY = 1;
+    } else if (typeof repeat === 'number') {
+      repeatX = repeat;
+      repeatY = repeat;
+    } else if (Array.isArray(repeat)) {
+      repeatX = typeof repeat[0] === 'number' ? repeat[0] : repeatX;
+      if (typeof repeat[1] === 'number') {
+        repeatY = repeat[1];
+      } else if (typeof repeat[0] === 'number') {
+        repeatY = repeat[0];
+      }
+    } else if (typeof repeat === 'object') {
+      const { x, y, width, height } = repeat;
+      if (typeof x === 'number') {
+        repeatX = x;
+      } else if (typeof width === 'number') {
+        repeatX = width;
+      }
+
+      if (typeof y === 'number') {
+        repeatY = y;
+      } else if (typeof height === 'number') {
+        repeatY = height;
+      }
+    }
+
+    texture.repeat.set(repeatX, repeatY);
   }
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -114,6 +147,9 @@ function createDefaultTexture(url, settings) {
 
 const defaultTopBottomTexture = createDefaultTexture(new URL('./t1.png', import.meta.url));
 const defaultSidesTexture = createDefaultTexture(new URL('./t2.png', import.meta.url));
+const rotundaOuterTexture = createDefaultTexture(new URL('./t3.png', import.meta.url), {
+  repeat: { x: 3, y: 1 },
+});
 
 function normalizeAzimuth(value) {
   return (value % 360 + 360) % 360;
@@ -210,7 +246,27 @@ const blockMaterials = [
   materials.back,
 ];
 
-const sideMaterials = [materials.right, materials.left, materials.front, materials.back];
+const rotundaOuterMaterial = new THREE.MeshStandardMaterial({
+  map: rotundaOuterTexture,
+  metalness: 0.2,
+  roughness: 0.55,
+});
+
+const rotundaInnerMaterial = new THREE.MeshStandardMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+});
+
+const rotundaMaterials = [materials.top, materials.bottom, rotundaOuterMaterial, rotundaInnerMaterial];
+
+const sideMaterials = [
+  materials.right,
+  materials.left,
+  materials.front,
+  materials.back,
+  rotundaOuterMaterial,
+];
 const topBottomMaterials = [materials.top, materials.bottom];
 
 let currentSidesTexture = defaultSidesTexture;
@@ -527,6 +583,56 @@ function createRotundaGeometry() {
   const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
   geometry.rotateX(Math.PI / 2);
   geometry.translate(0, height / 2, 0);
+  geometry.computeVertexNormals();
+
+  const index = geometry.index;
+  if (index) {
+    const indexArray = index.array;
+    const positionArray = geometry.attributes.position.array;
+    const normalArray = geometry.attributes.normal.array;
+    const innerOuterThreshold = (outerRadius + innerRadius) / 2;
+    const faceNormal = new THREE.Vector3();
+
+    geometry.clearGroups();
+
+    for (let faceIndex = 0; faceIndex < indexArray.length; faceIndex += 3) {
+      const aIndex = indexArray[faceIndex] * 3;
+      const bIndex = indexArray[faceIndex + 1] * 3;
+      const cIndex = indexArray[faceIndex + 2] * 3;
+
+      const normalX = normalArray[aIndex] + normalArray[bIndex] + normalArray[cIndex];
+      const normalY =
+        normalArray[aIndex + 1] + normalArray[bIndex + 1] + normalArray[cIndex + 1];
+      const normalZ =
+        normalArray[aIndex + 2] + normalArray[bIndex + 2] + normalArray[cIndex + 2];
+
+      faceNormal.set(normalX, normalY, normalZ).normalize();
+
+      let materialIndex = 2;
+
+      if (faceNormal.y >= 0.5) {
+        materialIndex = 0;
+      } else if (faceNormal.y <= -0.5) {
+        materialIndex = 1;
+      } else {
+        const ax = positionArray[aIndex];
+        const az = positionArray[aIndex + 2];
+        const bx = positionArray[bIndex];
+        const bz = positionArray[bIndex + 2];
+        const cx = positionArray[cIndex];
+        const cz = positionArray[cIndex + 2];
+        const centroidX = (ax + bx + cx) / 3;
+        const centroidZ = (az + bz + cz) / 3;
+        const radius = Math.hypot(centroidX, centroidZ);
+        materialIndex = radius > innerOuterThreshold ? 2 : 3;
+      }
+
+      geometry.addGroup(faceIndex, 3, materialIndex);
+    }
+
+    geometry.groupsNeedUpdate = true;
+  }
+
   geometry.center();
   geometry.computeVertexNormals();
 
@@ -557,7 +663,7 @@ const BLOCK_TYPES = {
     label: 'Element rotundy 18 cm',
     size: { x: 18, y: 12, z: 18 },
     createGeometry: () => createRotundaGeometry(),
-    createMaterials: () => blockMaterials,
+    createMaterials: () => rotundaMaterials,
     createOrientations: (size) => createRotundaOrientations(size),
     buildModel: () => buildRotundaModel(),
   },
