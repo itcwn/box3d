@@ -102,8 +102,8 @@ body.kreator-fullscreen-active
 }
 
 .kreator-app .tab-navigation .tab-button {
-  font-size: 1rem;
-  padding: 12px 20px;
+  font-size: 1.08rem;
+  padding: 13px 22px;
 }
 
 .kreator-app button.tab-button:hover,
@@ -304,6 +304,12 @@ body.kreator-fullscreen-active
   color: var(--color-secondary);
   letter-spacing: 0.02em;
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kreator-app .menu-toggle,
+.kreator-app .menu-close {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
 }
 
 .kreator-app button:hover {
