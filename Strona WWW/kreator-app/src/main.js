@@ -148,7 +148,7 @@ function createDefaultTexture(url, settings) {
 const defaultTopBottomTexture = createDefaultTexture(new URL('./t1.png', import.meta.url));
 const defaultSidesTexture = createDefaultTexture(new URL('./t2.png', import.meta.url));
 const rotundaOuterTexture = createDefaultTexture(new URL('./t3.png', import.meta.url), {
-  repeat: { x: 3, y: 1 },
+  repeat: true,
 });
 
 function normalizeAzimuth(value) {
@@ -590,6 +590,7 @@ function createRotundaGeometry() {
     const indexArray = index.array;
     const positionArray = geometry.attributes.position.array;
     const normalArray = geometry.attributes.normal.array;
+    const outerVertexIndices = new Set();
     const innerOuterThreshold = (outerRadius + innerRadius) / 2;
     const faceNormal = new THREE.Vector3();
 
@@ -627,10 +628,51 @@ function createRotundaGeometry() {
         materialIndex = radius > innerOuterThreshold ? 2 : 3;
       }
 
+      if (materialIndex === 2) {
+        outerVertexIndices.add(indexArray[faceIndex]);
+        outerVertexIndices.add(indexArray[faceIndex + 1]);
+        outerVertexIndices.add(indexArray[faceIndex + 2]);
+      }
+
       geometry.addGroup(faceIndex, 3, materialIndex);
     }
 
     geometry.groupsNeedUpdate = true;
+
+    if (outerVertexIndices.size > 0 && geometry.attributes.uv) {
+      const uvAttribute = geometry.attributes.uv;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      outerVertexIndices.forEach((vertexIndex) => {
+        const y = positionArray[vertexIndex * 3 + 1];
+        if (y < minY) {
+          minY = y;
+        }
+        if (y > maxY) {
+          maxY = y;
+        }
+      });
+
+      const heightRange = Math.max(maxY - minY, 1e-6);
+
+      outerVertexIndices.forEach((vertexIndex) => {
+        const baseIndex = vertexIndex * 3;
+        const x = positionArray[baseIndex];
+        const z = positionArray[baseIndex + 2];
+        let angle = Math.atan2(z, x) - startAngle;
+        angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        angle = Math.min(Math.max(angle, 0), thetaLength);
+        const u = (angle / thetaLength) * 3;
+        const y = positionArray[baseIndex + 1];
+        const v = (y - minY) / heightRange;
+        const uvIndex = vertexIndex * 2;
+        uvAttribute.array[uvIndex] = u;
+        uvAttribute.array[uvIndex + 1] = v;
+      });
+
+      uvAttribute.needsUpdate = true;
+    }
   }
 
   geometry.center();
