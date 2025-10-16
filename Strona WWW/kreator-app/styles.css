@@ -27,6 +27,7 @@ body.kreator-fullscreen-active
   --surface-soft: #f1f4f9;
   --surface-panel: #ffffff;
   --stroke: #c7d3e4;
+  --font-scale: 1.12;
   position: relative;
   display: block;
   width: 100%;
@@ -68,7 +69,7 @@ body.kreator-fullscreen-active
 
 .kreator-app .ui-panel h1 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--font-scale));
   font-weight: 700;
   color: var(--color-secondary);
   letter-spacing: 0.01em;
@@ -77,7 +78,7 @@ body.kreator-fullscreen-active
 .kreator-app .ui-panel p {
   margin: 0;
   line-height: 1.55;
-  font-size: 0.92rem;
+  font-size: calc(0.92rem * var(--font-scale));
   color: var(--color-muted);
 }
 
@@ -102,7 +103,7 @@ body.kreator-fullscreen-active
 }
 
 .kreator-app .tab-navigation .tab-button {
-  font-size: 1.08rem;
+  font-size: calc(1.08rem * var(--font-scale));
   padding: 13px 22px;
 }
 
@@ -147,7 +148,7 @@ body.kreator-fullscreen-active
 .kreator-app .block-counter-total {
   margin: 0;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--font-scale));
   color: var(--color-secondary);
 }
 
@@ -164,12 +165,12 @@ body.kreator-fullscreen-active
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--font-scale));
   color: var(--color-muted);
 }
 
 .kreator-app .block-counter-list strong {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--font-scale));
   color: var(--color-secondary);
 }
 
@@ -222,7 +223,7 @@ body.kreator-fullscreen-active
 }
 
 .kreator-app .orientation-status {
-  font-size: 0.88rem;
+  font-size: calc(0.88rem * var(--font-scale));
   font-weight: 600;
   color: var(--color-secondary);
 }
@@ -254,13 +255,13 @@ body.kreator-fullscreen-active
 }
 
 .kreator-app .orientation-preview-title {
-  font-size: 0.88rem;
+  font-size: calc(0.88rem * var(--font-scale));
   font-weight: 600;
   color: var(--color-secondary);
 }
 
 .kreator-app .orientation-preview-details {
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--font-scale));
   color: var(--color-muted);
 }
 
@@ -297,7 +298,7 @@ body.kreator-fullscreen-active
   padding: 10px 18px;
   border-radius: 6px;
   border: none;
-  font-size: 0.88rem;
+  font-size: calc(0.88rem * var(--font-scale));
   font-weight: 600;
   cursor: pointer;
   background: var(--color-primary);
@@ -308,7 +309,7 @@ body.kreator-fullscreen-active
 
 .kreator-app .menu-toggle,
 .kreator-app .menu-close {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--font-scale));
   letter-spacing: 0.03em;
 }
 
@@ -353,7 +354,7 @@ body.kreator-fullscreen-active
   color: var(--color-secondary);
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--font-scale));
 }
 
 .kreator-app fieldset {
@@ -367,7 +368,7 @@ body.kreator-fullscreen-active
 }
 
 .kreator-app legend {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--font-scale));
   font-weight: 600;
   padding: 0 8px;
   color: var(--color-secondary);
@@ -377,7 +378,7 @@ body.kreator-fullscreen-active
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--font-scale));
   color: var(--color-text);
 }
 
@@ -386,12 +387,12 @@ body.kreator-fullscreen-active
   border-radius: 6px;
   border: 1px solid var(--stroke);
   background: #f7f9fd;
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--font-scale));
   color: var(--color-secondary);
 }
 
 .kreator-app input[type='file'] {
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--font-scale));
 }
 
 .kreator-app input[type='range'] {
@@ -411,7 +412,7 @@ body.kreator-fullscreen-active
 
 .kreator-app .hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--font-scale));
   color: var(--color-muted);
 }
 
