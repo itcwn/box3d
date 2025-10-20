@@ -235,7 +235,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                                 <p>
                                                     Lewy przycisk myszy lub dotknięcie – dodawanie klocka w podświetlonym miejscu.<br />
                                                     <kbd>Shift</kbd> + kliknięcie – usuwanie wskazanego klocka.<br />
-                                                    Przyciski obracania lub <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót klocka o 90°.<br />
+                                                    <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + kliknięcie – zaznaczanie lub odznaczanie klocka (można wskazać kilka).<br />
+                                                    Strzałki na klawiaturze obracają zaznaczone klocki o 90°.<br />
+                                                    Przyciski obracania lub <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> – obrót aktualnie wstawianego klocka.<br />
                                                     Rolka myszy/gesty – przybliżenie, obrót widoku wykonujemy przeciągając myszą.
                                                 </p>
                                                 <section class="block-counter" aria-live="polite">
@@ -257,6 +259,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                                         </li>
                                                     </ul>
                                                 </section>
+                                                <label for="model-select">
+                                                    Gotowe modele
+                                                    <select id="model-select">
+                                                        <option value="fort">Fort</option>
+                                                        <option value="empty">Nowy pusty projekt</option>
+                                                        <option value="castle-demo">Zamek demonstracyjny</option>
+                                                        <option value="connector-demo">Łączniki – przykład</option>
+                                                        <option value="rotunda-demo">Rotunda – przykład</option>
+                                                    </select>
+                                                </label>
                                                 <label for="block-type">
                                                     Model klocka
                                                     <select id="block-type">
@@ -265,6 +277,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                                         <option value="rotunda">Element rotundy 18 cm</option>
                                                     </select>
                                                 </label>
+                                                <fieldset>
+                                                    <legend>Obszar roboczy</legend>
+                                                    <p class="hint">Zwiększ liczbę pól lub poziomów, gdy potrzebujesz więcej miejsca na projekt.</p>
+                                                    <label for="workspace-size">
+                                                        Zasięg poziomy (pola od środka)
+                                                        <input id="workspace-size" type="number" min="10" max="60" value="10" />
+                                                    </label>
+                                                    <label for="workspace-height">
+                                                        Maksymalna wysokość (poziomy)
+                                                        <input id="workspace-height" type="number" min="12" max="60" value="12" />
+                                                    </label>
+                                                    <button type="button" id="workspace-apply" class="secondary">Zastosuj zmiany</button>
+                                                    <p class="hint">Wartości można tylko zwiększać, aby zachować istniejącą konstrukcję.</p>
+                                                </fieldset>
                                                 <section class="orientation-controls" aria-label="Sterowanie orientacją klocka">
                                                     <div class="orientation-status">
                                                         Orientacja: <strong id="orientation-indicator">—</strong>
