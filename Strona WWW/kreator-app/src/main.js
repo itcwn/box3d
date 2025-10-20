@@ -3,8 +3,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const gridUnit = { x: 6, y: 12, z: 6 }; // cm units per grid cell
 let currentBlockSize = { ...gridUnit };
-const GRID_LIMIT = 10; // how many blocks allowed from center on X/Z
-const HEIGHT_LIMIT = 12; // how many blocks high we allow stacking
+let gridLimit = 10; // how many blocks allowed from center on X/Z
+let heightLimit = 12; // how many blocks high we allow stacking
+const GRID_LIMIT_MIN = 5;
+const GRID_LIMIT_MAX = 60;
+const HEIGHT_LIMIT_MIN = 1;
+const HEIGHT_LIMIT_MAX = 60;
 
 const container = document.querySelector('#app');
 const appRoot = container ? container.closest('.kreator-app') : null;
@@ -66,11 +70,6 @@ scene.add(dirLight);
 dirLight.target.position.set(0, currentBlockSize.y / 2, 0);
 scene.add(dirLight.target);
 
-const gridSize = GRID_LIMIT * 2 + 1;
-const gridHelper = new THREE.GridHelper(gridSize * gridUnit.x, gridSize, '#8cc63f', '#8cc63f');
-scene.add(gridHelper);
-
-const groundGeometry = new THREE.PlaneGeometry(gridSize * gridUnit.x, gridSize * gridUnit.z);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: '#e5f3d8',
   metalness: 0,
@@ -79,11 +78,105 @@ const groundMaterial = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.4,
 });
-const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-ground.rotateX(-Math.PI / 2);
-ground.receiveShadow = true;
-ground.name = 'ground';
-scene.add(ground);
+
+/** @type {THREE.GridHelper | null} */
+let gridHelper = null;
+/** @type {THREE.Mesh | null} */
+let ground = null;
+
+function disposeGridHelper(helper) {
+  if (!helper) {
+    return;
+  }
+  if (helper.geometry) {
+    helper.geometry.dispose();
+  }
+  const materials = Array.isArray(helper.material) ? helper.material : [helper.material];
+  materials.forEach((material) => {
+    if (material && typeof material.dispose === 'function') {
+      material.dispose();
+    }
+  });
+}
+
+function disposeGroundMesh(mesh) {
+  if (!mesh) {
+    return;
+  }
+  if (mesh.geometry) {
+    mesh.geometry.dispose();
+  }
+}
+
+function rebuildWorkspace() {
+  const gridSize = gridLimit * 2 + 1;
+  const gridLengthX = gridSize * gridUnit.x;
+  const gridLengthZ = gridSize * gridUnit.z;
+
+  const gridVisible = gridHelper ? gridHelper.visible : true;
+
+  if (gridHelper) {
+    scene.remove(gridHelper);
+    disposeGridHelper(gridHelper);
+  }
+
+  gridHelper = new THREE.GridHelper(gridLengthX, gridSize, '#8cc63f', '#8cc63f');
+  gridHelper.visible = gridVisible;
+  scene.add(gridHelper);
+
+  if (ground) {
+    scene.remove(ground);
+    disposeGroundMesh(ground);
+  }
+
+  const groundGeometry = new THREE.PlaneGeometry(gridLengthX, gridLengthZ);
+  ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  ground.rotateX(-Math.PI / 2);
+  ground.receiveShadow = true;
+  ground.name = 'ground';
+  scene.add(ground);
+}
+
+rebuildWorkspace();
+
+function setWorkspaceLimits({ horizontal, vertical }) {
+  const nextHorizontal = THREE.MathUtils.clamp(Math.max(gridLimit, horizontal), GRID_LIMIT_MIN, GRID_LIMIT_MAX);
+  const nextVertical = THREE.MathUtils.clamp(Math.max(heightLimit, vertical), HEIGHT_LIMIT_MIN, HEIGHT_LIMIT_MAX);
+
+  if (nextHorizontal === gridLimit && nextVertical === heightLimit) {
+    syncWorkspaceInputs();
+    return false;
+  }
+
+  gridLimit = nextHorizontal;
+  heightLimit = nextVertical;
+  rebuildWorkspace();
+  hoveredPlacement = null;
+  updatePreview();
+  syncWorkspaceInputs();
+  return true;
+}
+
+function syncWorkspaceInputs() {
+  if (workspaceSizeInput) {
+    workspaceSizeInput.value = gridLimit.toString();
+    workspaceSizeInput.min = gridLimit.toString();
+    workspaceSizeInput.max = GRID_LIMIT_MAX.toString();
+  }
+  if (workspaceHeightInput) {
+    workspaceHeightInput.value = heightLimit.toString();
+    workspaceHeightInput.min = heightLimit.toString();
+    workspaceHeightInput.max = HEIGHT_LIMIT_MAX.toString();
+  }
+}
+
+function applyWorkspaceInputs() {
+  const horizontalRaw = workspaceSizeInput ? Number.parseInt(workspaceSizeInput.value, 10) : gridLimit;
+  const verticalRaw = workspaceHeightInput ? Number.parseInt(workspaceHeightInput.value, 10) : heightLimit;
+  const horizontal = Number.isNaN(horizontalRaw) ? gridLimit : horizontalRaw;
+  const vertical = Number.isNaN(verticalRaw) ? heightLimit : verticalRaw;
+  setWorkspaceLimits({ horizontal, vertical });
+}
 
 let blockGeometry = new THREE.BoxGeometry(currentBlockSize.x, currentBlockSize.y, currentBlockSize.z);
 const geometryCache = new Map([['standard', blockGeometry]]);
@@ -714,17 +807,208 @@ let currentBlockType = BLOCK_TYPES.standard;
 let currentBlockMaterials = blockMaterials;
 let orientations = createBoxOrientations(currentBlockSize);
 
+const orientationDataCache = new Map();
+
+function getOrientationData(typeId) {
+  const cached = orientationDataCache.get(typeId);
+  if (cached) {
+    return cached;
+  }
+  const type = BLOCK_TYPES[typeId];
+  if (!type) {
+    throw new Error(`Nieznany typ klocka: ${typeId}`);
+  }
+  const orientationList = type.createOrientations(type.size);
+  const quaternions = orientationList.map((orientation) => new THREE.Quaternion().setFromEuler(orientation.rotation));
+  const indexByName = new Map(orientationList.map((orientation, index) => [orientation.name, index]));
+  const data = { orientations: orientationList, quaternions, indexByName };
+  orientationDataCache.set(typeId, data);
+  return data;
+}
+
+function getOrientationIndexByName(typeId, name) {
+  const data = getOrientationData(typeId);
+  return data.indexByName.has(name) ? data.indexByName.get(name) : -1;
+}
+
 const EPSILON = 1e-3;
 
 /** @type {Set<THREE.Mesh>} */
 const blocks = new Set();
 let currentOrientationIndex = 0;
+const selectedBlocks = new Set();
+const selectionHelpers = new Map();
+
+function createSelectionHelper(mesh) {
+  const helper = new THREE.BoxHelper(mesh, 0x2196f3);
+  if (helper.material) {
+    const materials = Array.isArray(helper.material) ? helper.material : [helper.material];
+    materials.forEach((material) => {
+      material.depthTest = false;
+      material.transparent = true;
+      material.opacity = 0.85;
+    });
+  }
+  return helper;
+}
+
+function addBlockToSelection(mesh) {
+  if (selectedBlocks.has(mesh)) {
+    return;
+  }
+  const helper = createSelectionHelper(mesh);
+  selectionHelpers.set(mesh, helper);
+  selectedBlocks.add(mesh);
+  scene.add(helper);
+  helper.update();
+}
+
+function removeBlockFromSelection(mesh) {
+  const helper = selectionHelpers.get(mesh);
+  if (helper) {
+    scene.remove(helper);
+    if (helper.geometry) {
+      helper.geometry.dispose();
+    }
+    const materials = Array.isArray(helper.material) ? helper.material : [helper.material];
+    materials.forEach((material) => {
+      if (material && typeof material.dispose === 'function') {
+        material.dispose();
+      }
+    });
+    selectionHelpers.delete(mesh);
+  }
+  selectedBlocks.delete(mesh);
+}
+
+function toggleBlockSelection(mesh, { additive = false } = {}) {
+  if (!mesh) {
+    return;
+  }
+  if (!additive) {
+    clearSelection();
+  }
+  if (selectedBlocks.has(mesh) && additive) {
+    removeBlockFromSelection(mesh);
+    return;
+  }
+  addBlockToSelection(mesh);
+}
+
+function clearSelection() {
+  Array.from(selectedBlocks).forEach((mesh) => removeBlockFromSelection(mesh));
+}
+
+function updateSelectionHelper(mesh) {
+  const helper = selectionHelpers.get(mesh);
+  if (helper) {
+    helper.update();
+  }
+}
+
+function deselectBlock(mesh) {
+  if (!mesh) {
+    return;
+  }
+  removeBlockFromSelection(mesh);
+}
+
+const ROTATION_TOLERANCE = 1e-3;
+
+const ROTATION_DELTAS = {
+  ArrowLeft: { axis: new THREE.Vector3(0, 1, 0), angle: Math.PI / 2 },
+  ArrowRight: { axis: new THREE.Vector3(0, 1, 0), angle: -Math.PI / 2 },
+  ArrowUp: { axis: new THREE.Vector3(1, 0, 0), angle: -Math.PI / 2 },
+  ArrowDown: { axis: new THREE.Vector3(1, 0, 0), angle: Math.PI / 2 },
+};
+
+function getRotationDeltaQuaternion(key) {
+  const config = ROTATION_DELTAS[key];
+  if (!config) {
+    return null;
+  }
+  return new THREE.Quaternion().setFromAxisAngle(config.axis, config.angle);
+}
+
+function rotateSelectedBlocksByKey(key) {
+  const rotationQuaternion = getRotationDeltaQuaternion(key);
+  if (!rotationQuaternion || selectedBlocks.size === 0) {
+    return;
+  }
+
+  /** @type {{ mesh: THREE.Mesh; orientationIndex: number; orientation: ReturnType<typeof getOrientation> }[]} */
+  const updates = [];
+  const overrides = new Map();
+  let anyChange = false;
+
+  selectedBlocks.forEach((mesh) => {
+    const typeId = mesh.userData?.typeId && BLOCK_TYPES[mesh.userData.typeId] ? mesh.userData.typeId : 'standard';
+    const { orientations: typeOrientations, quaternions } = getOrientationData(typeId);
+    const currentIndex = mesh.userData?.orientationIndex ?? 0;
+    const currentQuat = quaternions[currentIndex] || new THREE.Quaternion().setFromEuler(typeOrientations[currentIndex].rotation);
+    const targetQuat = rotationQuaternion.clone().multiply(currentQuat).normalize();
+
+    let targetIndex = -1;
+    for (let index = 0; index < quaternions.length; index += 1) {
+      const candidate = quaternions[index];
+      if (candidate.angleTo(targetQuat) <= ROTATION_TOLERANCE) {
+        targetIndex = index;
+        break;
+      }
+    }
+
+    if (targetIndex === -1) {
+      overrides.set(mesh, mesh.userData.boundingBox);
+      updates.push({ mesh, orientationIndex: currentIndex, orientation: typeOrientations[currentIndex] });
+      return;
+    }
+
+    const orientation = typeOrientations[targetIndex];
+    const boundingBox = getBoundingBox(mesh.userData.coord, orientation);
+    overrides.set(mesh, boundingBox);
+    updates.push({ mesh, orientationIndex: targetIndex, orientation });
+    if (targetIndex !== currentIndex) {
+      anyChange = true;
+    }
+  });
+
+  if (!anyChange) {
+    return;
+  }
+
+  for (const update of updates) {
+    if (!isInsideBounds(update.mesh.userData.coord, update.orientation)) {
+      return;
+    }
+  }
+
+  for (const update of updates) {
+    if (!canPlace(update.mesh.userData.coord, update.orientation, { ignoreMeshes: update.mesh, boundingBoxesOverride: overrides })) {
+      return;
+    }
+  }
+
+  updates.forEach((update) => {
+    const { mesh, orientationIndex, orientation } = update;
+    const boundingBox = overrides.get(mesh);
+    mesh.rotation.copy(orientation.rotation);
+    mesh.position.copy(toPosition(mesh.userData.coord, orientation));
+    mesh.userData.orientationIndex = orientationIndex;
+    mesh.userData.boundingBox = boundingBox;
+    updateSelectionHelper(mesh);
+  });
+
+  hoveredPlacement = null;
+  updatePreview();
+}
 /** @type {HTMLElement | null} */
 let blockCountElement = null;
 /** @type {HTMLElement | null} */
 let blockCountByTypeElement = null;
 /** @type {HTMLSelectElement | null} */
 let blockTypeSelect = null;
+/** @type {HTMLSelectElement | null} */
+let modelSelect = null;
 /** @type {HTMLElement | null} */
 let orientationIndicatorElement = null;
 /** @type {HTMLButtonElement | null} */
@@ -757,6 +1041,12 @@ let controlPanelElement = null;
 let menuToggleButton = null;
 /** @type {HTMLButtonElement | null} */
 let menuCloseButton = null;
+/** @type {HTMLInputElement | null} */
+let workspaceSizeInput = null;
+/** @type {HTMLInputElement | null} */
+let workspaceHeightInput = null;
+/** @type {HTMLButtonElement | null} */
+let workspaceApplyButton = null;
 const RESPONSIVE_MENU_QUERY = '(max-width: 768px)';
 /** @type {MediaQueryList | null} */
 const responsivePanelQuery = typeof window !== 'undefined' ? window.matchMedia(RESPONSIVE_MENU_QUERY) : null;
@@ -935,13 +1225,10 @@ function getGeometryForType(type) {
 }
 
 function setBlockType(typeId, options = {}) {
-  const { force = false, initializeModel = false } = options;
+  const { force = false } = options;
   const nextType = BLOCK_TYPES[typeId] || BLOCK_TYPES.standard;
 
   if (!force && currentBlockType === nextType) {
-    if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
-      nextType.buildModel();
-    }
     return;
   }
 
@@ -951,7 +1238,8 @@ function setBlockType(typeId, options = {}) {
   if (nextType.id === BLOCK_TYPES.rotunda.id) {
     resetRotundaOuterMaterial();
   }
-  orientations = nextType.createOrientations(currentBlockSize);
+  const orientationData = getOrientationData(nextType.id);
+  orientations = orientationData.orientations;
   currentBlockType = nextType;
   currentOrientationIndex = 0;
 
@@ -971,10 +1259,6 @@ function setBlockType(typeId, options = {}) {
 
   hoveredPlacement = null;
   updatePreview();
-
-  if (initializeModel && typeof nextType.buildModel === 'function' && blocks.size === 0) {
-    nextType.buildModel();
-  }
 
   updateOrientationPreview({ resetCamera: true });
   syncOrientationControls();
@@ -1073,27 +1357,54 @@ function isInsideBounds(coord, orientation) {
   const posX = coord.x * gridUnit.x;
   const posZ = coord.z * gridUnit.z;
 
-  const withinX = posX + halfX <= GRID_LIMIT * gridUnit.x && posX - halfX >= -GRID_LIMIT * gridUnit.x;
-  const withinZ = posZ + halfZ <= GRID_LIMIT * gridUnit.z && posZ - halfZ >= -GRID_LIMIT * gridUnit.z;
+  const withinX = posX + halfX <= gridLimit * gridUnit.x && posX - halfX >= -gridLimit * gridUnit.x;
+  const withinZ = posZ + halfZ <= gridLimit * gridUnit.z && posZ - halfZ >= -gridLimit * gridUnit.z;
   const topY = coord.y * gridUnit.y + orientation.size.y;
-  const withinY = coord.y >= 0 && topY <= (HEIGHT_LIMIT + 1) * gridUnit.y;
+  const withinY = coord.y >= 0 && topY <= (heightLimit + 1) * gridUnit.y;
 
   return withinX && withinZ && withinY;
 }
 
-function hasNeighbor(candidateBox) {
+function normalizeIgnoredMeshes(ignoreMeshes) {
+  if (!ignoreMeshes) {
+    return new Set();
+  }
+  if (ignoreMeshes instanceof Set) {
+    return ignoreMeshes;
+  }
+  if (Array.isArray(ignoreMeshes)) {
+    return new Set(ignoreMeshes);
+  }
+  return new Set([ignoreMeshes]);
+}
+
+function getBoundingBoxForMesh(mesh, overrides) {
+  if (!mesh) {
+    return null;
+  }
+  if (overrides && overrides.has(mesh)) {
+    return overrides.get(mesh);
+  }
+  return mesh.userData?.boundingBox ?? null;
+}
+
+function hasNeighbor(candidateBox, { ignoreMeshes = null, boundingBoxesOverride = null } = {}) {
   if (candidateBox.min.y <= EPSILON) {
     return true;
   }
 
+  const ignored = normalizeIgnoredMeshes(ignoreMeshes);
   let supported = false;
 
   blocks.forEach((mesh) => {
-    if (supported) {
+    if (supported || ignored.has(mesh)) {
       return;
     }
 
-    const otherBox = mesh.userData.boundingBox;
+    const otherBox = getBoundingBoxForMesh(mesh, boundingBoxesOverride);
+    if (!otherBox) {
+      return;
+    }
     if (Math.abs(otherBox.max.y - candidateBox.min.y) <= EPSILON && horizontalSupportOverlap(candidateBox, otherBox)) {
       supported = true;
     }
@@ -1105,29 +1416,41 @@ function hasNeighbor(candidateBox) {
 
   let touchesSide = false;
   blocks.forEach((mesh) => {
-    if (touchesSide) {
+    if (touchesSide || ignored.has(mesh)) {
       return;
     }
-    touchesSide = facesTouch(candidateBox, mesh.userData.boundingBox);
+    const otherBox = getBoundingBoxForMesh(mesh, boundingBoxesOverride);
+    if (!otherBox) {
+      return;
+    }
+    touchesSide = facesTouch(candidateBox, otherBox);
   });
 
   return touchesSide;
 }
 
-function canPlace(coord, orientation) {
+function canPlace(coord, orientation, { ignoreMeshes = null, boundingBoxesOverride = null } = {}) {
   if (!isInsideBounds(coord, orientation)) {
     return false;
   }
 
   const candidateBox = getBoundingBox(coord, orientation);
+  const ignored = normalizeIgnoredMeshes(ignoreMeshes);
 
   for (const mesh of blocks) {
-    if (boxesOverlap(candidateBox, mesh.userData.boundingBox)) {
+    if (ignored.has(mesh)) {
+      continue;
+    }
+    const otherBox = getBoundingBoxForMesh(mesh, boundingBoxesOverride);
+    if (!otherBox) {
+      continue;
+    }
+    if (boxesOverlap(candidateBox, otherBox)) {
       return false;
     }
   }
 
-  return hasNeighbor(candidateBox);
+  return hasNeighbor(candidateBox, { ignoreMeshes, boundingBoxesOverride });
 }
 
 function addBlock(placement) {
@@ -1150,6 +1473,7 @@ function addBlock(placement) {
 }
 
 function removeBlock(mesh) {
+  deselectBlock(mesh);
   scene.remove(mesh);
   blocks.delete(mesh);
   updateBlockCount();
@@ -1163,6 +1487,70 @@ function snapAxis(value, baseSize, step) {
 
 function roundCoordValue(value) {
   return Math.round(value * 1000) / 1000;
+}
+
+function createCenteredPlacementsFromExport(exportData, typeId) {
+  const { orientations: typeOrientations } = getOrientationData(typeId);
+  const placements = [];
+  const boundingBoxes = [];
+
+  exportData.coordinates.forEach((entry) => {
+    const orientationIndex = getOrientationIndexByName(typeId, entry.orientation);
+    if (orientationIndex === -1) {
+      return;
+    }
+
+    const coord = {
+      x: roundCoordValue(entry.x),
+      y: roundCoordValue(entry.y),
+      z: roundCoordValue(entry.z),
+    };
+
+    const orientation = typeOrientations[orientationIndex];
+    const boundingBox = getBoundingBox(coord, orientation);
+    placements.push({ coord, orientationIndex });
+    boundingBoxes.push(boundingBox);
+  });
+
+  if (placements.length === 0) {
+    return placements;
+  }
+
+  const union = boundingBoxes.reduce((accumulator, box) => {
+    if (!accumulator) {
+      return box.clone();
+    }
+    return accumulator.union(box);
+  }, null);
+
+  if (!union) {
+    return placements;
+  }
+
+  const center = union.getCenter(new THREE.Vector3());
+  const offset = {
+    x: roundCoordValue(center.x / gridUnit.x),
+    z: roundCoordValue(center.z / gridUnit.z),
+  };
+
+  return placements.map((placement) => ({
+    coord: {
+      x: roundCoordValue(placement.coord.x - offset.x),
+      y: placement.coord.y,
+      z: roundCoordValue(placement.coord.z - offset.z),
+    },
+    orientationIndex: placement.orientationIndex,
+  }));
+}
+
+function applyPlacementsForType(typeId, placements) {
+  setBlockType(typeId, { force: true });
+  placements.forEach((placement) => {
+    const orientation = getOrientation(placement.orientationIndex);
+    if (canPlace(placement.coord, orientation)) {
+      addBlock(placement);
+    }
+  });
 }
 
 function getPlacementFromIntersection(intersection) {
@@ -1263,6 +1651,15 @@ function handleClick(event) {
     return;
   }
 
+  if (event.ctrlKey || event.metaKey) {
+    if (hoveredBlock) {
+      toggleBlockSelection(hoveredBlock, { additive: true });
+    } else {
+      clearSelection();
+    }
+    return;
+  }
+
   if (event.shiftKey) {
     if (hoveredBlock) {
       removeBlock(hoveredBlock);
@@ -1280,10 +1677,17 @@ function handleClick(event) {
       valid: canPlace(hoveredPlacement.coord, getOrientation(hoveredPlacement.orientationIndex)),
     };
     updatePreview();
+    clearSelection();
+    return;
+  }
+
+  if (!hoveredBlock && selectedBlocks.size > 0) {
+    clearSelection();
   }
 }
 
 function clearScene() {
+  clearSelection();
   blocks.forEach((mesh) => scene.remove(mesh));
   blocks.clear();
   updateBlockCount();
@@ -1332,10 +1736,41 @@ function cycleOrientation(direction) {
   updateOrientationPreview();
 }
 
+function isInteractiveElementFocused() {
+  const activeElement = document.activeElement;
+  if (!activeElement) {
+    return false;
+  }
+  if (activeElement.isContentEditable) {
+    return true;
+  }
+  const tagName = activeElement.tagName;
+  if (tagName === 'INPUT') {
+    return true;
+  }
+  return tagName === 'TEXTAREA' || tagName === 'SELECT';
+}
+
 function handleKeyDown(event) {
-  if (event.code === 'KeyR') {
+  const isInteractive = isInteractiveElementFocused();
+
+  if (!isInteractive && event.code === 'KeyR') {
     event.preventDefault();
     cycleOrientation(event.shiftKey ? -1 : 1);
+    return;
+  }
+
+  if (!isInteractive && ROTATION_DELTAS[event.key]) {
+    event.preventDefault();
+    rotateSelectedBlocksByKey(event.key);
+    return;
+  }
+
+  if (!isInteractive && event.key === 'Escape') {
+    if (selectedBlocks.size > 0) {
+      event.preventDefault();
+      clearSelection();
+    }
   }
 }
 
@@ -1494,6 +1929,48 @@ function resetLighting() {
   syncLightingControls();
 }
 
+const FORT_MODEL_EXPORT = {
+  unit: 'cm',
+  blockSize: { x: 6, y: 12, z: 6 },
+  count: 29,
+  coordinates: [
+    { x: -8, y: 0, z: 2, orientation: 'standing' },
+    { x: -6.5, y: 0, z: 2, orientation: 'lying-x' },
+    { x: -5, y: 0, z: 2, orientation: 'standing' },
+    { x: -3.5, y: 0, z: 2, orientation: 'lying-x' },
+    { x: -2, y: 0, z: 2, orientation: 'standing' },
+    { x: -8, y: 0, z: 3.5, orientation: 'lying-z' },
+    { x: -5, y: 0, z: 3.5, orientation: 'lying-z' },
+    { x: -2, y: 0, z: 3.5, orientation: 'lying-z' },
+    { x: -8, y: 0, z: 5, orientation: 'standing' },
+    { x: -6.5, y: 0, z: 5, orientation: 'lying-x' },
+    { x: -5, y: 0, z: 5, orientation: 'standing' },
+    { x: -3.5, y: 0, z: 5, orientation: 'lying-x' },
+    { x: -2, y: 0, z: 5, orientation: 'standing' },
+    { x: -8, y: 0, z: 6.5, orientation: 'lying-z' },
+    { x: -5, y: 0, z: 6.5, orientation: 'lying-z' },
+    { x: -2, y: 0, z: 6.5, orientation: 'lying-z' },
+    { x: -8, y: 0, z: 8, orientation: 'standing' },
+    { x: -6.5, y: 0, z: 8, orientation: 'lying-x' },
+    { x: -5, y: 0, z: 8, orientation: 'standing' },
+    { x: -3.5, y: 0, z: 8, orientation: 'lying-x' },
+    { x: -2, y: 0, z: 8, orientation: 'standing' },
+    { x: -5, y: 0.5, z: 4, orientation: 'standing' },
+    { x: -6, y: 0.5, z: 5, orientation: 'standing' },
+    { x: -4, y: 0.5, z: 5, orientation: 'standing' },
+    { x: -5, y: 0.5, z: 6, orientation: 'standing' },
+    { x: -6, y: 1, z: 4, orientation: 'standing' },
+    { x: -4, y: 1, z: 4, orientation: 'standing' },
+    { x: -6, y: 1, z: 6, orientation: 'standing' },
+    { x: -4, y: 1, z: 6, orientation: 'standing' },
+  ],
+};
+
+function buildFortModel() {
+  const placements = createCenteredPlacementsFromExport(FORT_MODEL_EXPORT, 'standard');
+  applyPlacementsForType('standard', placements);
+}
+
 function buildCastleModel() {
   const placements = [];
 
@@ -1575,12 +2052,58 @@ function buildRotundaModel() {
   });
 }
 
+const MODEL_PRESETS = [
+  { id: 'fort', label: 'Fort', build: () => buildFortModel() },
+  { id: 'empty', label: 'Nowy pusty projekt', build: () => setBlockType('standard', { force: true }) },
+  {
+    id: 'castle-demo',
+    label: 'Zamek demonstracyjny',
+    build: () => {
+      setBlockType('standard', { force: true });
+      buildCastleModel();
+    },
+  },
+  {
+    id: 'connector-demo',
+    label: 'Łączniki – przykład',
+    build: () => {
+      setBlockType('connector', { force: true });
+      buildConnectorModel();
+    },
+  },
+  {
+    id: 'rotunda-demo',
+    label: 'Rotunda – przykład',
+    build: () => {
+      setBlockType('rotunda', { force: true });
+      buildRotundaModel();
+    },
+  },
+];
+
+function loadModelPreset(modelId, { skipSelectSync = false } = {}) {
+  const preset = MODEL_PRESETS.find((item) => item.id === modelId);
+  if (!preset) {
+    return;
+  }
+  clearScene();
+  preset.build();
+  if (!skipSelectSync && modelSelect && modelSelect.value !== modelId) {
+    modelSelect.value = modelId;
+  }
+}
+
+modelSelect = document.querySelector('#model-select');
 blockTypeSelect = document.querySelector('#block-type');
 blockCountElement = document.querySelector('#block-count');
 blockCountByTypeElement = document.querySelector('#block-count-by-type');
 controlPanelElement = document.querySelector('#control-panel');
 menuToggleButton = document.querySelector('#menu-toggle');
 menuCloseButton = document.querySelector('#menu-close');
+workspaceSizeInput = document.querySelector('#workspace-size');
+workspaceHeightInput = document.querySelector('#workspace-height');
+workspaceApplyButton = document.querySelector('#workspace-apply');
+syncWorkspaceInputs();
 
 const tabButtons = Array.from(document.querySelectorAll('[data-tab-target]'));
 const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
@@ -1676,12 +2199,44 @@ if (responsivePanelQuery) {
 updateBlockCount();
 
 const initialTypeId = blockTypeSelect ? blockTypeSelect.value : currentBlockType.id;
-setBlockType(initialTypeId, { force: true, initializeModel: true });
+setBlockType(initialTypeId, { force: true });
+
+const initialModelId = modelSelect ? modelSelect.value || 'fort' : 'fort';
+if (modelSelect && !modelSelect.value) {
+  modelSelect.value = initialModelId;
+}
+loadModelPreset(initialModelId, { skipSelectSync: true });
+
+if (modelSelect) {
+  modelSelect.addEventListener('change', (event) => {
+    loadModelPreset(event.target.value);
+  });
+}
 
 if (blockTypeSelect) {
   blockTypeSelect.addEventListener('change', (event) => {
     setBlockType(event.target.value);
   });
+}
+
+if (workspaceApplyButton) {
+  workspaceApplyButton.addEventListener('click', () => {
+    applyWorkspaceInputs();
+  });
+}
+
+const handleWorkspaceInputKeydown = (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    applyWorkspaceInputs();
+  }
+};
+
+if (workspaceSizeInput) {
+  workspaceSizeInput.addEventListener('keydown', handleWorkspaceInputKeydown);
+}
+if (workspaceHeightInput) {
+  workspaceHeightInput.addEventListener('keydown', handleWorkspaceInputKeydown);
 }
 
 resetButton.addEventListener('click', clearScene);
