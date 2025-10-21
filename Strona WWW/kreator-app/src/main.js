@@ -2052,50 +2052,197 @@ function buildRotundaModel() {
   });
 }
 
-function buildHalloweenPumpkinModel() {
+function buildBlockSkeletonModel() {
   const placements = [];
 
-  const addLayer = (y, rows) => {
-    rows.forEach(({ z, xValues }) => {
-      xValues.forEach((x) => {
-        placements.push({ coord: { x, y, z }, orientationIndex: 0 });
-      });
-    });
+  const addBlock = (x, y, z = 0) => {
+    placements.push({ coord: { x, y, z }, orientationIndex: 0 });
   };
 
+  const addLayer = (y, coords) => {
+    coords.forEach(([x, z = 0]) => addBlock(x, y, z));
+  };
+
+  const addColumn = (x, z, yStart, yEnd) => {
+    for (let y = yStart; y <= yEnd; y += 1) {
+      addBlock(x, y, z);
+    }
+  };
+
+  // Legs and feet
+  addColumn(-1, 0, 0, 5);
+  addColumn(1, 0, 0, 5);
   addLayer(0, [
-    { z: -2, xValues: [-1, 0, 1] },
-    { z: -1, xValues: [-2, -1, 0, 1, 2] },
-    { z: 0, xValues: [-2, -1, 0, 1, 2] },
-    { z: 1, xValues: [-2, -1, 0, 1, 2] },
-    { z: 2, xValues: [-1, 0, 1] },
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+    [1, 1],
   ]);
-
   addLayer(1, [
-    { z: -2, xValues: [-1, 0, 1] },
-    { z: -1, xValues: [-2, -1, 0, 1, 2] },
-    { z: 0, xValues: [-2, -1, 0, 1, 2] },
-    { z: 1, xValues: [-2, -1, 0, 1, 2] },
-    { z: 2, xValues: [-2, -1, 1, 2] },
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+    [1, 1],
   ]);
 
-  addLayer(2, [
-    { z: -2, xValues: [0] },
-    { z: -1, xValues: [-1, 0, 1] },
-    { z: 0, xValues: [-1, 0, 1] },
-    { z: 1, xValues: [-1, 0, 1] },
-    { z: 2, xValues: [-1, 1] },
+  // Hips and lower spine
+  addLayer(6, [
+    [-1, 0],
+    [0, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]);
+  addLayer(7, [
+    [0, -1],
+    [0, 0],
+    [0, 1],
   ]);
 
-  placements.push({ coord: { x: 0, y: 3, z: 0 }, orientationIndex: 0 });
-  placements.push({ coord: { x: 0, y: 3, z: -1 }, orientationIndex: 0 });
+  // Rib cage
+  [8, 9, 10].forEach((y) => {
+    addLayer(y, [
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+    ]);
+  });
+  addLayer(11, [
+    [-1, 0],
+    [0, -1],
+    [0, 0],
+    [0, 1],
+    [1, 0],
+  ]);
+  addLayer(12, [
+    [0, -1],
+    [0, 0],
+    [0, 1],
+  ]);
+
+  // Shoulders and arms
+  addLayer(13, [
+    [-3, 0],
+    [-2, 0],
+    [-1, 0],
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [3, 0],
+    [-2, -1],
+    [0, -1],
+    [2, -1],
+    [-2, 1],
+    [0, 1],
+    [2, 1],
+  ]);
+  addColumn(-3, 0, 9, 12);
+  addColumn(3, 0, 9, 12);
+  [9, 10, 11].forEach((y) => {
+    addLayer(y, [
+      [-3, -1],
+      [-3, 1],
+      [3, -1],
+      [3, 1],
+    ]);
+  });
+  addLayer(8, [
+    [-3, -1],
+    [-3, 0],
+    [-3, 1],
+    [3, -1],
+    [3, 0],
+    [3, 1],
+  ]);
+  addLayer(7, [
+    [-3, -1],
+    [3, -1],
+  ]);
+
+  // Neck
+  addLayer(14, [
+    [0, -1],
+    [0, 0],
+    [0, 1],
+  ]);
+
+  // Skull
+  const headLayers = {
+    15: [
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+    ],
+    16: [
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+    ],
+    17: [
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+    ],
+    18: [
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+    ],
+    19: [
+      [-1, 0],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [1, 0],
+    ],
+    20: [
+      [0, -1],
+      [0, 0],
+      [0, 1],
+    ],
+    21: [[0, 0]],
+  };
+
+  // The highest layer sits at y = 21, so the skeleton measures 22 blocks in height.
+  Object.entries(headLayers).forEach(([yString, coords]) => {
+    const y = Number(yString);
+    coords.forEach(([x, z]) => addBlock(x, y, z));
+  });
 
   applyPlacementsForType('standard', placements);
 }
 
 const MODEL_PRESETS = [
   { id: 'fort', label: 'Fort', build: () => buildFortModel() },
-  { id: 'halloween-pumpkin', label: 'Dynia Halloween', build: () => buildHalloweenPumpkinModel() },
+  { id: 'block-skeleton', label: 'Kościotrup z klocków', build: () => buildBlockSkeletonModel() },
   { id: 'empty', label: 'Nowy pusty projekt', build: () => setBlockType('standard', { force: true }) },
   {
     id: 'castle-demo',
