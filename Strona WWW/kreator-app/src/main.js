@@ -2242,7 +2242,6 @@ function buildBlockSkeletonModel() {
 
 const MODEL_PRESETS = [
   { id: 'fort', label: 'Fort', build: () => buildFortModel() },
-  { id: 'block-skeleton', label: 'Kościotrup z klocków', build: () => buildBlockSkeletonModel() },
   { id: 'empty', label: 'Nowy pusty projekt', build: () => setBlockType('standard', { force: true }) },
   {
     id: 'castle-demo',
