@@ -2052,8 +2052,50 @@ function buildRotundaModel() {
   });
 }
 
+function buildHalloweenPumpkinModel() {
+  const placements = [];
+
+  const addLayer = (y, rows) => {
+    rows.forEach(({ z, xValues }) => {
+      xValues.forEach((x) => {
+        placements.push({ coord: { x, y, z }, orientationIndex: 0 });
+      });
+    });
+  };
+
+  addLayer(0, [
+    { z: -2, xValues: [-1, 0, 1] },
+    { z: -1, xValues: [-2, -1, 0, 1, 2] },
+    { z: 0, xValues: [-2, -1, 0, 1, 2] },
+    { z: 1, xValues: [-2, -1, 0, 1, 2] },
+    { z: 2, xValues: [-1, 0, 1] },
+  ]);
+
+  addLayer(1, [
+    { z: -2, xValues: [-1, 0, 1] },
+    { z: -1, xValues: [-2, -1, 0, 1, 2] },
+    { z: 0, xValues: [-2, -1, 0, 1, 2] },
+    { z: 1, xValues: [-2, -1, 0, 1, 2] },
+    { z: 2, xValues: [-2, -1, 1, 2] },
+  ]);
+
+  addLayer(2, [
+    { z: -2, xValues: [0] },
+    { z: -1, xValues: [-1, 0, 1] },
+    { z: 0, xValues: [-1, 0, 1] },
+    { z: 1, xValues: [-1, 0, 1] },
+    { z: 2, xValues: [-1, 1] },
+  ]);
+
+  placements.push({ coord: { x: 0, y: 3, z: 0 }, orientationIndex: 0 });
+  placements.push({ coord: { x: 0, y: 3, z: -1 }, orientationIndex: 0 });
+
+  applyPlacementsForType('standard', placements);
+}
+
 const MODEL_PRESETS = [
   { id: 'fort', label: 'Fort', build: () => buildFortModel() },
+  { id: 'halloween-pumpkin', label: 'Dynia Halloween', build: () => buildHalloweenPumpkinModel() },
   { id: 'empty', label: 'Nowy pusty projekt', build: () => setBlockType('standard', { force: true }) },
   {
     id: 'castle-demo',
