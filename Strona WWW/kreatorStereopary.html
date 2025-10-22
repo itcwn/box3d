@@ -194,7 +194,7 @@
         .stereopair-action-button {
             background: #062d55;
             border: none;
-            border-radius: 50px;
+            border-radius: 10px;
             padding: 10px 24px;
             color: #ffffff;
             font-weight: 600;
@@ -283,9 +283,11 @@
         .stereopair-image-half img {
             position: absolute;
             top: 0;
+            left: 0;
             height: 100%;
-            width: 200%;
+            width: 100%;
             object-fit: cover;
+            object-position: center;
             display: none;
         }
 
@@ -298,11 +300,11 @@
         }
 
         .stereopair-image-half-left img {
-            left: 0;
+            object-position: left center;
         }
 
         .stereopair-image-half-right img {
-            left: -100%;
+            object-position: right center;
         }
 
         @media (max-width: 991px) {
