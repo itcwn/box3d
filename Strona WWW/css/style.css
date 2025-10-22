@@ -591,6 +591,12 @@ ul li {
     height: auto;
 }
 
+@media only screen and (min-width: 992px) {
+    .main-header .logo-wrapper img {
+        width: 170px;
+    }
+}
+
 .main-menu {
     position: relative;
     text-align: right;
