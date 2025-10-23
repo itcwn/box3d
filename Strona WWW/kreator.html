@@ -532,11 +532,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             var header = document.querySelector('.main-header');
 
             function setHeaderHeight() {
-                if (!body.classList.contains('kreator-fullscreen-active')) {
-                    body.style.removeProperty('--kreator-header-height');
-                    return;
-                }
-
                 var headerHeight = header ? header.offsetHeight : 0;
                 body.style.setProperty('--kreator-header-height', headerHeight + 'px');
             }
