@@ -387,7 +387,7 @@ text-align: center;
     position: relative;
     max-width: 720px;
     z-index: 1;
-    padding: 80px 0;
+    padding: 80px 30px;
 }
 
 .premium-hero__content h1 {
@@ -623,6 +623,10 @@ text-align: center;
         min-height: 360px;
     }
 
+    .premium-hero__content {
+        padding: 60px 24px;
+    }
+
     .premium-gallery {
         gap: 20px;
     }
@@ -634,6 +638,10 @@ text-align: center;
 }
 
 @media (max-width: 575px) {
+    .premium-hero__content {
+        padding: 50px 20px;
+    }
+
     .premium-gallery {
         grid-template-columns: 1fr;
         justify-items: center;
