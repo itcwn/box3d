@@ -524,6 +524,12 @@ text-align: center;
     transform: translateY(-10px);
 }
 
+.premium-gallery-item--centered {
+    justify-self: center;
+    max-width: 360px;
+    width: 100%;
+}
+
 .premium-cta {
     background: linear-gradient(135deg, #1b2a4b 0%, #3d5e9b 100%);
     color: #ffffff;
@@ -624,6 +630,18 @@ text-align: center;
     .premium-cta__inner {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+@media (max-width: 575px) {
+    .premium-gallery {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .premium-gallery-item,
+    .premium-gallery-item--centered {
+        max-width: 420px;
     }
 }
 
