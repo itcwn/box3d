@@ -583,10 +583,18 @@ ul li {
     padding: 10px 0;
 }
 
-.main-header .logo-wrapper .logo img {
+.main-header .logo-wrapper img {
     position: relative;
     display: inline-block;
+    width: 140px;
     max-width: 100%;
+    height: auto;
+}
+
+@media only screen and (min-width: 992px) {
+    .main-header .logo-wrapper img {
+        width: 170px;
+    }
 }
 
 .main-menu {
