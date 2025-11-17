@@ -52,6 +52,8 @@
             --stereopair-column-gap: 30.24px;
             --stereopair-row-gap: 45.36px;
             --stereopair-workspace-bg: #ffffff;
+            --stereopair-padding-vertical: 16px;
+            --stereopair-padding-horizontal: 16px;
         }
 
         .stereopair-generator {
@@ -256,7 +258,7 @@
             grid-template-rows: repeat(2, 1fr);
             column-gap: var(--stereopair-column-gap);
             row-gap: var(--stereopair-row-gap);
-            padding: 16px;
+            padding: var(--stereopair-padding-vertical) var(--stereopair-padding-horizontal);
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
@@ -266,8 +268,8 @@
         .stereopair-workspace::before {
             content: "";
             position: absolute;
-            left: 16px;
-            right: 16px;
+            left: var(--stereopair-padding-horizontal);
+            right: var(--stereopair-padding-horizontal);
             top: calc(50% - var(--stereopair-row-gap) / 2);
             border-top: 2px dotted rgba(6, 45, 85, 0.25);
             pointer-events: none;
@@ -333,7 +335,7 @@
             }
 
             .stereopair-workspace {
-                padding: 12px;
+                padding: var(--stereopair-padding-vertical) var(--stereopair-padding-horizontal);
             }
         }
 
@@ -508,6 +510,20 @@
                     </section>
 
                     <section class="stereopair-section">
+                        <h2>Marginesy</h2>
+                        <div class="stereopair-dimensions">
+                            <label class="stereopair-field" for="topMargin">
+                                <span class="stereopair-field-label">Margines górny i dolny (mm)</span>
+                                <input type="number" id="topMargin" min="0" max="30" value="5" step="0.5" />
+                            </label>
+                            <label class="stereopair-field" for="sideMargin">
+                                <span class="stereopair-field-label">Margines boczny (mm)</span>
+                                <input type="number" id="sideMargin" min="0" max="30" value="5" step="0.5" />
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="stereopair-section">
                         <h2>Kolor tła</h2>
                         <label class="stereopair-field stereopair-color-picker" for="backgroundColor">
                             <span class="stereopair-field-label">Wybierz kolor</span>
@@ -625,6 +641,8 @@
         const columnGapNumber = document.getElementById('columnGapNumber');
         const rowGapRange = document.getElementById('rowGapRange');
         const rowGapNumber = document.getElementById('rowGapNumber');
+        const topMarginInput = document.getElementById('topMargin');
+        const sideMarginInput = document.getElementById('sideMargin');
         const backgroundColorPicker = document.getElementById('backgroundColor');
         const saveImageButton = document.getElementById('saveImage');
         const printButton = document.getElementById('printWorkspace');
@@ -654,11 +672,15 @@
 
         const updateColumnGap = createGapController(columnGapRange, columnGapNumber, '--stereopair-column-gap');
         const updateRowGap = createGapController(rowGapRange, rowGapNumber, '--stereopair-row-gap');
+        const updateTopMargin = createGapController(topMarginInput, topMarginInput, '--stereopair-padding-vertical');
+        const updateSideMargin = createGapController(sideMarginInput, sideMarginInput, '--stereopair-padding-horizontal');
 
         columnGapRange.addEventListener('input', (event) => updateColumnGap(event.target.value));
         columnGapNumber.addEventListener('input', (event) => updateColumnGap(event.target.value));
         rowGapRange.addEventListener('input', (event) => updateRowGap(event.target.value));
         rowGapNumber.addEventListener('input', (event) => updateRowGap(event.target.value));
+        topMarginInput?.addEventListener('input', (event) => updateTopMargin(event.target.value));
+        sideMarginInput?.addEventListener('input', (event) => updateSideMargin(event.target.value));
 
         const templates = {
             'canon-selphy-1500': {
@@ -667,6 +689,8 @@
                 workspaceHeightCm: 11,
                 columnGapMm: 8,
                 rowGapMm: 12,
+                topMarginMm: 5,
+                sideMarginMm: 5,
             },
         };
 
@@ -715,6 +739,8 @@
             setWorkspaceSize(template.workspaceWidthCm, template.workspaceHeightCm);
             updateColumnGap(template.columnGapMm);
             updateRowGap(template.rowGapMm);
+            updateTopMargin(template.topMarginMm);
+            updateSideMargin(template.sideMarginMm);
         };
 
         if (templateSelect) {
@@ -885,17 +911,18 @@
             ctx.fillRect(0, 0, printWidth, printHeight);
 
             const workspaceStyle = getComputedStyle(workspace);
-            const paddingPx = parseFloat(workspaceStyle.paddingLeft) || 0;
-            const paddingMm = pxToMm(paddingPx);
-            const paddingPrint = mmToPrintPx(paddingMm);
+            const paddingLeftPx = parseFloat(workspaceStyle.paddingLeft) || 0;
+            const paddingTopPx = parseFloat(workspaceStyle.paddingTop) || 0;
+            const paddingHorizontalPrint = mmToPrintPx(pxToMm(paddingLeftPx));
+            const paddingVerticalPrint = mmToPrintPx(pxToMm(paddingTopPx));
 
             const columnGapMm = Number(columnGapRange.value);
             const rowGapMm = Number(rowGapRange.value);
             const columnGapPrint = mmToPrintPx(columnGapMm);
             const rowGapPrint = mmToPrintPx(rowGapMm);
 
-            const cellWidth = (printWidth - paddingPrint * 2 - columnGapPrint) / 2;
-            const cellHeight = (printHeight - paddingPrint * 2 - rowGapPrint) / 2;
+            const cellWidth = (printWidth - paddingHorizontalPrint * 2 - columnGapPrint) / 2;
+            const cellHeight = (printHeight - paddingVerticalPrint * 2 - rowGapPrint) / 2;
 
             const sampleHalf = document.querySelector('.stereopair-image-half');
             const halfStyle = sampleHalf ? getComputedStyle(sampleHalf) : null;
@@ -905,27 +932,27 @@
             const borderRadiusPrint = mmToPrintPx(pxToMm(borderRadiusPx));
 
             const cells = [
-                { inputId: 'photo1', half: 'left', label: 'Zdjęcie 1', x: paddingPrint, y: paddingPrint },
+                { inputId: 'photo1', half: 'left', label: 'Zdjęcie 1', x: paddingHorizontalPrint, y: paddingVerticalPrint },
                 {
                     inputId: 'photo1',
                     half: 'right',
                     label: 'Zdjęcie 1',
-                    x: paddingPrint + cellWidth + columnGapPrint,
-                    y: paddingPrint,
+                    x: paddingHorizontalPrint + cellWidth + columnGapPrint,
+                    y: paddingVerticalPrint,
                 },
                 {
                     inputId: 'photo2',
                     half: 'left',
                     label: 'Zdjęcie 2',
-                    x: paddingPrint,
-                    y: paddingPrint + cellHeight + rowGapPrint,
+                    x: paddingHorizontalPrint,
+                    y: paddingVerticalPrint + cellHeight + rowGapPrint,
                 },
                 {
                     inputId: 'photo2',
                     half: 'right',
                     label: 'Zdjęcie 2',
-                    x: paddingPrint + cellWidth + columnGapPrint,
-                    y: paddingPrint + cellHeight + rowGapPrint,
+                    x: paddingHorizontalPrint + cellWidth + columnGapPrint,
+                    y: paddingVerticalPrint + cellHeight + rowGapPrint,
                 },
             ];
 
@@ -970,15 +997,15 @@
                 ctx.restore();
             }
 
-            const separatorY = paddingPrint + cellHeight + rowGapPrint / 2;
+            const separatorY = paddingVerticalPrint + cellHeight + rowGapPrint / 2;
             const separatorDash = mmToPrintPx(pxToMm(2));
             const separatorWidth = mmToPrintPx(pxToMm(2));
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
             ctx.setLineDash([separatorDash, separatorDash]);
             ctx.lineWidth = Math.max(separatorWidth, 1);
             ctx.beginPath();
-            ctx.moveTo(paddingPrint, separatorY);
-            ctx.lineTo(printWidth - paddingPrint, separatorY);
+            ctx.moveTo(paddingHorizontalPrint, separatorY);
+            ctx.lineTo(printWidth - paddingHorizontalPrint, separatorY);
             ctx.stroke();
             ctx.setLineDash([]);
 
