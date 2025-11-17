@@ -121,6 +121,12 @@
             color: #4c5c73;
         }
 
+        .stereopair-dimensions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
         .stereopair-select,
         .stereopair-panel input[type="file"],
         .stereopair-panel input[type="number"] {
@@ -223,6 +229,7 @@
             flex-direction: column;
             align-items: center;
             gap: 20px;
+            width: 100%;
         }
 
         .stereopair-preview-header {
@@ -237,8 +244,9 @@
         }
 
         .stereopair-workspace {
-            width: var(--stereopair-workspace-width);
-            height: var(--stereopair-workspace-height);
+            width: min(var(--stereopair-workspace-width), 100%);
+            max-width: 100%;
+            aspect-ratio: calc(var(--stereopair-workspace-width) / var(--stereopair-workspace-height));
             background: var(--stereopair-workspace-bg);
             border-radius: 18px;
             border: 1px solid rgba(6, 45, 85, 0.18);
@@ -299,14 +307,6 @@
             display: block;
         }
 
-        .stereopair-image-half-left img {
-            object-position: left center;
-        }
-
-        .stereopair-image-half-right img {
-            object-position: right center;
-        }
-
         @media (max-width: 991px) {
             .stereopair-content {
                 flex-direction: column;
@@ -328,8 +328,12 @@
                 padding: 40px 0 60px;
             }
 
+            .stereopair-preview {
+                padding: 20px;
+            }
+
             .stereopair-workspace {
-                width: min(var(--stereopair-workspace-width), 100%);
+                padding: 12px;
             }
         }
 
@@ -452,6 +456,21 @@
                             </select>
                         </label>
                         <p class="stereopair-helper-text">Domyślne ustawienia obejmują format arkusza, układ zdjęć oraz odstępy właściwe dla wybranego urządzenia.</p>
+                    </section>
+
+                    <section class="stereopair-section">
+                        <h2>Wymiary docelowego zdjęcia</h2>
+                        <div class="stereopair-dimensions">
+                            <label class="stereopair-field" for="workspaceWidth">
+                                <span class="stereopair-field-label">Szerokość (cm)</span>
+                                <input type="number" id="workspaceWidth" min="1" step="0.1" value="12.5" />
+                            </label>
+                            <label class="stereopair-field" for="workspaceHeight">
+                                <span class="stereopair-field-label">Wysokość (cm)</span>
+                                <input type="number" id="workspaceHeight" min="1" step="0.1" value="11" />
+                            </label>
+                        </div>
+                        <p class="stereopair-helper-text">Podaj rozmiar końcowego pliku do druku. Podgląd skaluje się automatycznie na ekranie telefonu.</p>
                     </section>
 
                     <section class="stereopair-section">
@@ -609,6 +628,8 @@
         const backgroundColorPicker = document.getElementById('backgroundColor');
         const saveImageButton = document.getElementById('saveImage');
         const printButton = document.getElementById('printWorkspace');
+        const workspaceWidthInput = document.getElementById('workspaceWidth');
+        const workspaceHeightInput = document.getElementById('workspaceHeight');
 
         if (!workspace) {
             throw new Error('Brak obszaru roboczego do wyświetlenia stereopary.');
@@ -660,27 +681,59 @@
             return numeric.toLocaleString('pl-PL', options);
         };
 
+        const setWorkspaceSize = (widthCm, heightCm) => {
+            const safeWidth = Math.max(1, Number.isFinite(widthCm) ? widthCm : currentTemplate.workspaceWidthCm);
+            const safeHeight = Math.max(1, Number.isFinite(heightCm) ? heightCm : currentTemplate.workspaceHeightCm);
+            document.documentElement.style.setProperty('--stereopair-workspace-width', `${safeWidth}cm`);
+            document.documentElement.style.setProperty('--stereopair-workspace-height', `${safeHeight}cm`);
+            if (workspaceWidthInput) {
+                workspaceWidthInput.value = safeWidth.toString();
+            }
+            if (workspaceHeightInput) {
+                workspaceHeightInput.value = safeHeight.toString();
+            }
+            if (workspaceLabel) {
+                workspaceLabel.textContent = `Obszar roboczy ${formatDimension(safeWidth)}×${formatDimension(safeHeight)} cm`;
+            }
+            if (printStyleElement) {
+                printStyleElement.textContent = `@page { size: ${safeWidth}cm ${safeHeight}cm; margin: 0; }`;
+            }
+        };
+
+        const getWorkspaceSize = () => {
+            const widthCm = Number.parseFloat(workspaceWidthInput?.value ?? '') || currentTemplate.workspaceWidthCm;
+            const heightCm = Number.parseFloat(workspaceHeightInput?.value ?? '') || currentTemplate.workspaceHeightCm;
+            return { widthCm, heightCm };
+        };
+
         const applyTemplate = (templateId) => {
             const template = templates[templateId] || templates['canon-selphy-1500'];
             currentTemplate = template;
             if (templateSelect && templateSelect.value !== templateId) {
                 templateSelect.value = templateId;
             }
-            document.documentElement.style.setProperty('--stereopair-workspace-width', `${template.workspaceWidthCm}cm`);
-            document.documentElement.style.setProperty('--stereopair-workspace-height', `${template.workspaceHeightCm}cm`);
+            setWorkspaceSize(template.workspaceWidthCm, template.workspaceHeightCm);
             updateColumnGap(template.columnGapMm);
             updateRowGap(template.rowGapMm);
-            if (workspaceLabel) {
-                workspaceLabel.textContent = `Obszar roboczy ${formatDimension(template.workspaceWidthCm)}×${formatDimension(template.workspaceHeightCm)} cm`;
-            }
-            if (printStyleElement) {
-                printStyleElement.textContent = `@page { size: ${template.workspaceWidthCm}cm ${template.workspaceHeightCm}cm; margin: 0; }`;
-            }
         };
 
         if (templateSelect) {
             templateSelect.addEventListener('change', (event) => {
                 applyTemplate(event.target.value);
+            });
+        }
+
+        if (workspaceWidthInput) {
+            workspaceWidthInput.addEventListener('input', () => {
+                const { heightCm } = getWorkspaceSize();
+                setWorkspaceSize(Number.parseFloat(workspaceWidthInput.value), heightCm);
+            });
+        }
+
+        if (workspaceHeightInput) {
+            workspaceHeightInput.addEventListener('input', () => {
+                const { widthCm } = getWorkspaceSize();
+                setWorkspaceSize(widthCm, Number.parseFloat(workspaceHeightInput.value));
             });
         }
 
@@ -812,8 +865,9 @@
 
         const renderWorkspaceToImage = async () => {
             const template = currentTemplate || templates['canon-selphy-1500'];
-            const printWidth = Math.round(template.workspaceWidthCm * CM_TO_INCH * PRINT_DPI);
-            const printHeight = Math.round(template.workspaceHeightCm * CM_TO_INCH * PRINT_DPI);
+            const { widthCm, heightCm } = getWorkspaceSize();
+            const printWidth = Math.round(widthCm * CM_TO_INCH * PRINT_DPI);
+            const printHeight = Math.round(heightCm * CM_TO_INCH * PRINT_DPI);
 
             const canvas = document.createElement('canvas');
             canvas.width = printWidth;
