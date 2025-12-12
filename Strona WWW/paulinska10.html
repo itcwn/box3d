@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paulinska10 | Gabinety do wynajęcia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --piaskowy: #f5ede4;
+      --kremowy: #f9f5ef;
+      --beige: #e8d9c9;
+      --brzask: #c5b59f;
+      --tekst: #3c342b;
+      --zielony: #6a8f6b;
+      --akcent: #d2b48c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--tekst);
+      background: linear-gradient(180deg, var(--kremowy) 0%, var(--piaskowy) 50%, var(--kremowy) 100%);
+      line-height: 1.6;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: rgba(249, 245, 239, 0.85);
+      border-bottom: 1px solid rgba(197, 181, 159, 0.3);
+    }
+
+    .nav-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--tekst);
+      text-decoration: none;
+    }
+
+    .brand mark {
+      background: var(--beige);
+      padding: 6px 10px;
+      border-radius: 10px;
+      color: var(--tekst);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 18px;
+      padding: 0;
+      margin: 0;
+    }
+
+    nav a {
+      color: var(--tekst);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 14px;
+      transition: all 0.2s ease;
+    }
+
+    nav a:hover {
+      background: rgba(197, 181, 159, 0.35);
+      color: #2d261f;
+    }
+
+    .hero {
+      max-width: 1100px;
+      margin: 40px auto 32px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.3rem, 3vw + 1rem, 3.6rem);
+      margin: 0 0 12px;
+      color: #2f261e;
+    }
+
+    .hero .lead {
+      font-size: 1.05rem;
+      margin-bottom: 18px;
+      max-width: 520px;
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(197, 181, 159, 0.45);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.05);
+    }
+
+    .hero .tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 16px 0 22px;
+    }
+
+    .tag {
+      background: var(--beige);
+      color: #2f271f;
+      padding: 8px 12px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--zielony);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(106, 143, 107, 0.35);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--tekst);
+      border: 1px solid rgba(197, 181, 159, 0.7);
+    }
+
+    section {
+      padding: 28px 20px;
+    }
+
+    .section-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: #2f261e;
+      margin-bottom: 12px;
+    }
+
+    .pill {
+      background: rgba(197, 181, 159, 0.6);
+      color: #2f261e;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 30px;
+      font-weight: 700;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(197, 181, 159, 0.35);
+      border-radius: 18px;
+      padding: 18px;
+      min-height: 180px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.04);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      color: #2f261e;
+    }
+
+    .card p {
+      margin: 0;
+      color: #4b4035;
+    }
+
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .price-box {
+      background: #fffefc;
+      border: 1px solid rgba(197, 181, 159, 0.45);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .price-box strong {
+      display: block;
+      font-size: 1.6rem;
+      margin: 10px 0 6px;
+      color: #2f261e;
+    }
+
+    .price-box small {
+      color: #4b4035;
+    }
+
+    .label {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: var(--zielony);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 6px 14px rgba(106, 143, 107, 0.25);
+    }
+
+    .partners {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .partner-card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(197, 181, 159, 0.35);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .partner-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--beige);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #2f261e;
+      border: 1px solid rgba(197, 181, 159, 0.6);
+    }
+
+    .location {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 10px;
+      align-items: start;
+    }
+
+    .location .map-placeholder {
+      background: repeating-linear-gradient(135deg, rgba(197, 181, 159, 0.4), rgba(197, 181, 159, 0.4) 12px, rgba(197, 181, 159, 0.18) 12px, rgba(197, 181, 159, 0.18) 24px);
+      border-radius: 18px;
+      border: 1px solid rgba(197, 181, 159, 0.6);
+      height: 240px;
+      display: grid;
+      place-items: center;
+      color: #2f261e;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      box-shadow: inset 0 0 0 1px #fff;
+    }
+
+    .collab {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    input, textarea, select {
+      border-radius: 12px;
+      border: 1px solid rgba(197, 181, 159, 0.6);
+      padding: 10px 12px;
+      background: #fffdf8;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    textarea { min-height: 120px; }
+
+    footer {
+      background: #e6d8c9;
+      padding: 18px 20px;
+      text-align: center;
+      color: #2f261e;
+      border-top: 1px solid rgba(197, 181, 159, 0.5);
+      margin-top: 24px;
+    }
+
+    @media (max-width: 720px) {
+      nav ul { flex-wrap: wrap; }
+      .nav-container { gap: 10px; }
+      .cta-group { width: 100%; }
+      .hero-card { order: -1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a class="brand" href="#">
+        <mark>Paulinska10</mark>
+        <span>gabinety &amp; komfort pracy</span>
+      </a>
+      <nav>
+        <ul>
+          <li><a href="#zakladki">Zakładki</a></li>
+          <li><a href="#cennik">Cennik</a></li>
+          <li><a href="#partnerzy">Partnerzy</a></li>
+          <li><a href="#lokal">Lokal</a></li>
+          <li><a href="#wspolpraca">Współpraca</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <p class="pill">W samym sercu miasta</p>
+      <h1>Paulinska10 – Twoje miejsce na spokojną i dyskretną pracę z klientami.</h1>
+      <p class="lead">Wynajmij w pełni wyposażone gabinety przyjazne psychologom, logopedom, terapeutom oraz specjalistom, którzy cenią komfort, dostępność i jasne zasady współpracy.</p>
+      <div class="tags">
+        <span class="tag">rezerwacje godzinowe i pakiety</span>
+        <span class="tag">strefa relaksu</span>
+        <span class="tag">blisko komunikacji</span>
+        <span class="tag">wsparcie administracyjne</span>
+      </div>
+      <div class="cta-group">
+        <a class="btn btn-primary" href="#wspolpraca">Umów obejrzenie</a>
+        <a class="btn btn-secondary" href="mailto:kontakt@paulinska10.pl">kontakt@paulinska10.pl</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h3>Godziny otwarcia</h3>
+      <p><strong>Poniedziałek – Sobota:</strong> 7:00 – 21:00</p>
+      <p><strong>Niedziela:</strong> na zapytanie</p>
+      <hr style="border: none; border-top: 1px solid rgba(197,181,159,0.5); margin: 16px 0;">
+      <h3>Kontakt</h3>
+      <p><strong>Telefon:</strong> +48 600 000 210</p>
+      <p><strong>Adres:</strong> ul. Paulínska 10, Kraków</p>
+    </div>
+  </div>
+
+  <section id="zakladki">
+    <div class="section-shell">
+      <div class="section-title">
+        <span class="pill">Zakładki</span>
+        <span>Najważniejsze obszary, które znajdziesz w naszej przestrzeni</span>
+      </div>
+      <div class="cards-grid">
+        <div class="card">
+          <h3>Gabinety terapeutyczne</h3>
+          <p>Akustyczne, przytulne pokoje z regulowanym oświetleniem, wygodnymi fotelami i możliwością dostosowania układu.</p>
+        </div>
+        <div class="card">
+          <h3>Strefa wspólna</h3>
+          <p>Recepcja samoobsługowa, zaplecze kuchenne, kawa i herbata bez limitu oraz wygodne poczekalnie dla klientów.</p>
+        </div>
+        <div class="card">
+          <h3>Technologia</h3>
+          <p>Szybkie Wi‑Fi, system rezerwacji online, zamki kodowe do gabinetów i wsparcie przy organizacji konsultacji online.</p>
+        </div>
+        <div class="card">
+          <h3>Wsparcie merytoryczne</h3>
+          <p>Materiały informacyjne dla specjalistów, wzory umów z klientami oraz możliwość dołączenia do wspólnej promocji.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cennik">
+    <div class="section-shell">
+      <div class="section-title">
+        <span class="pill">Cennik</span>
+        <span>Jasne zasady dla elastycznych potrzeb</span>
+      </div>
+      <div class="pricing">
+        <div class="price-box">
+          <div class="label">Start</div>
+          <h3>Rezerwacja pojedyncza</h3>
+          <strong>90 zł / h</strong>
+          <small>dla nowych specjalistów, w cenie kawa/herbata i szybkie Wi‑Fi</small>
+        </div>
+        <div class="price-box">
+          <div class="label">Najczęściej wybierane</div>
+          <h3>Pakiet godzinowy</h3>
+          <strong>75 zł / h</strong>
+          <small>blok 12+ godzin miesięcznie; elastyczny kalendarz, możliwość przenoszenia godzin</small>
+        </div>
+        <div class="price-box">
+          <div class="label">Stały gabinet</div>
+          <h3>Rezerwacja dniowa</h3>
+          <strong>320 zł / dzień</strong>
+          <small>dedykowany pokój w wybrane dni tygodnia, miejsce na materiały i klucze do lokalu</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="partnerzy">
+    <div class="section-shell">
+      <div class="section-title">
+        <span class="pill">Partnerzy</span>
+        <span>Z kim współpracujemy i wspieramy się na co dzień</span>
+      </div>
+      <div class="partners">
+        <div class="partner-card">
+          <div class="partner-icon">P</div>
+          <div>
+            <h3>Pracownie psychologiczne</h3>
+            <p>Specjaliści zdrowia psychicznego prowadzący terapie indywidualne i rodzinne w elastycznym grafiku.</p>
+          </div>
+        </div>
+        <div class="partner-card">
+          <div class="partner-icon">L</div>
+          <div>
+            <h3>Logopedzi i neurologopedzi</h3>
+            <p>Gabinet przygotowany do pracy z dziećmi i dorosłymi, z dostępem do podstawowych materiałów dydaktycznych.</p>
+          </div>
+        </div>
+        <div class="partner-card">
+          <div class="partner-icon">T</div>
+          <div>
+            <h3>Terapeuci holistyczni</h3>
+            <p>Bezpieczna przestrzeń dla konsultacji, warsztatów grupowych i spotkań psychoedukacyjnych.</p>
+          </div>
+        </div>
+        <div class="partner-card">
+          <div class="partner-icon">E</div>
+          <div>
+            <h3>Edukatorzy</h3>
+            <p>Małe szkolenia, superwizje i mentoring – dostęp do rzutnika przenośnego oraz modułowego układu sal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="lokal">
+    <div class="section-shell">
+      <div class="section-title">
+        <span class="pill">Lokal</span>
+        <span>Paulínska 10 – spokojna ulica na krakowskim Kazimierzu</span>
+      </div>
+      <div class="location">
+        <div class="card">
+          <h3>Doświadczenie klientów</h3>
+          <p>Zapewniamy dyskretny dostęp bez recepcji, windę w budynku, a w sąsiedztwie znajdują się kawiarnie i parkingi miejskie.</p>
+          <p style="margin-top: 10px;">Przystanki tramwajowe i autobusowe w zasięgu 5 minut spaceru, a ścieżki rowerowe prowadzą bezpośrednio pod nasz adres.</p>
+        </div>
+        <div class="card">
+          <h3>Wyposażenie</h3>
+          <ul style="padding-left: 18px; margin: 0; color: #4b4035;">
+            <li>ergonomiczne fotele i sofy</li>
+            <li>biurko do pracy z laptopem lub testami</li>
+            <li>materiały higieniczne i oczyszczacz powietrza</li>
+            <li>zamykane szafki na dokumenty</li>
+            <li>naturalne, beżowe wykończenia wnętrz</li>
+          </ul>
+        </div>
+        <div class="map-placeholder">Paulínska 10</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="wspolpraca">
+    <div class="section-shell">
+      <div class="section-title">
+        <span class="pill">Współpraca</span>
+        <span>Powiedz, czego potrzebujesz – przygotujemy dopasowaną ofertę</span>
+      </div>
+      <div class="collab">
+        <div class="card">
+          <h3>Jak działamy?</h3>
+          <p>Wypełnij formularz, a w ciągu 24 godzin otrzymasz dostęp do kalendarza rezerwacji oraz propozycję cennika dopasowanego do Twojej praktyki.</p>
+          <p style="margin-top: 10px;">Możesz też zadzwonić: <strong>+48 600 000 210</strong> lub napisać: <strong>kontakt@paulinska10.pl</strong>.</p>
+        </div>
+        <div class="card">
+          <form>
+            <label for="specjalizacja">Specjalizacja</label>
+            <select id="specjalizacja" name="specjalizacja">
+              <option>Psycholog / Psychoterapeuta</option>
+              <option>Logopeda / Neurologopeda</option>
+              <option>Coach / Mentor</option>
+              <option>Warsztaty / Małe grupy</option>
+              <option>Inne</option>
+            </select>
+            <label for="termin">Preferowany termin współpracy</label>
+            <input type="text" id="termin" name="termin" placeholder="np. poniedziałki 14:00-18:00">
+            <label for="wiadomosc">Krótkie potrzeby</label>
+            <textarea id="wiadomosc" name="wiadomosc" placeholder="Opisz potrzeby, liczbę godzin, wymagania sprzętowe..."></textarea>
+            <button class="btn btn-primary" type="submit">Wyślij zapytanie</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Paulinska10 · przestrzeń dla specjalistów · ul. Paulínska 10, Kraków · kontakt@paulinska10.pl
+  </footer>
+</body>
+</html>
